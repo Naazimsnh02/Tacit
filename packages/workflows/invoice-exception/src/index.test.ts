@@ -6,6 +6,6 @@ describe('invoice exception workflow pack', () => {
   it('registers through the generic workflow registry', () => {
     const registry = new WorkflowRegistry();
     registry.register(invoiceExceptionWorkflowPack);
-    expect(registry.get('invoice-exception').name).toBe('Invoice Exception Review');
+    expect(registry.get('invoice_exception').name).toBe('Invoice Exception Review');
   });
 });

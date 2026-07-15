@@ -13,6 +13,10 @@ export default [
     ],
   },
   { languageOptions: { globals: { console: 'readonly' } } },
+  {
+    files: ['scripts/**/*.mjs'],
+    languageOptions: { globals: { URL: 'readonly', fetch: 'readonly', process: 'readonly' } },
+  },
   js.configs.recommended,
   ...tseslint.configs.recommended,
 ];

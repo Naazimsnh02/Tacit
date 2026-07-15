@@ -1,5 +1,29 @@
-import type { WorkflowType } from '@tacit/core-schemas';
-import type { z } from 'zod';
+import {
+  documentEvidenceSchema,
+  projectSchema,
+  testCaseSchema,
+  type DocumentEvidence,
+  type Project,
+  type TestCase,
+  type WorkflowType,
+} from '@tacit/core-schemas';
+import { z } from 'zod';
+
+export interface WorkflowPackSeed {
+  readonly project: Project;
+  readonly documents: readonly DocumentEvidence[];
+  readonly testCases: readonly TestCase[];
+  readonly domainRecords: readonly { id: string; type: string; schemaVersion: string; payload?: unknown }[];
+}
+
+export const workflowPackSeedSchema = z.object({
+  project: projectSchema,
+  documents: z.array(documentEvidenceSchema),
+  testCases: z.array(testCaseSchema),
+  domainRecords: z.array(z.object({
+    id: z.string().min(1), type: z.string().min(1), schemaVersion: z.string().min(1), payload: z.unknown(),
+  })),
+});
 
 export interface WorkflowPack<Input extends z.ZodType, Outcome extends z.ZodType> {
   readonly id: WorkflowType;
@@ -14,6 +38,7 @@ export interface WorkflowPack<Input extends z.ZodType, Outcome extends z.ZodType
   readonly approvalPolicy: unknown;
   readonly evaluationDefinition: unknown;
   readonly promptContext: string;
+  readonly seedLoader: () => WorkflowPackSeed;
 }
 
 export function defineWorkflowPack<Input extends z.ZodType, Outcome extends z.ZodType>(

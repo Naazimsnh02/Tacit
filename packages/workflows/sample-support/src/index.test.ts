@@ -6,6 +6,6 @@ describe('sample support workflow pack', () => {
   it('uses the same generic registration contract', () => {
     const registry = new WorkflowRegistry();
     registry.register(sampleSupportWorkflowPack);
-    expect(registry.get('sample-support')).toBe(sampleSupportWorkflowPack);
+    expect(registry.get('customer_support_escalation')).toBe(sampleSupportWorkflowPack);
   });
 });

@@ -1,10 +1,18 @@
 import { defineWorkflowPack } from '@tacit/workflow-sdk';
 import { z } from 'zod';
 
+const createdAt = '2026-07-15T09:00:00.000Z';
+
 export const sampleSupportWorkflowPack = defineWorkflowPack({
-  id: 'sample-support', name: 'Customer Support Escalation Sample', version: '0.1.0',
+  id: 'customer_support_escalation', name: 'Customer Support Escalation Sample', version: '1.0.0',
   inputSchema: z.object({ ticketReference: z.string().min(1) }), outcomeSchema: z.object({ escalationRequired: z.boolean() }),
   workspaceDefinition: [{ id: 'ticket', label: 'Ticket' }, { id: 'history', label: 'History' }],
   eventCatalog: ['view_ticket', 'record_escalation'], evidenceTypes: ['ticket_record'], supportedActions: ['resolve', 'escalate'],
   approvalPolicy: { type: 'escalation_required' }, evaluationDefinition: { fixtureSet: 'sample-support' }, promptContext: 'Evaluate a support escalation.',
+  seedLoader: () => ({
+    project: { id: '33333333-3333-4333-8333-333333333333', name: 'Support Escalation Sample', workflowType: 'customer_support_escalation', status: 'draft', configuration: {}, createdAt, updatedAt: createdAt },
+    documents: [],
+    testCases: [{ id: 'bbbbbbb1-0000-4000-8000-000000000001', projectId: '33333333-3333-4333-8333-333333333333', label: 'Escalate an urgent ticket', input: { ticketReference: 'SUP-001' }, expectedOutcome: { escalationRequired: true }, evidenceIds: [], createdAt }],
+    domainRecords: [{ id: 'support-rule-1', type: 'approval_rule', schemaVersion: '1.0', payload: { urgent: true } }],
+  }),
 });
