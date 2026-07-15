@@ -10,8 +10,8 @@
     "typecheck": "tsc --build",
     "test": "vitest run",
     "test:e2e": "playwright test",
-    "seed": "node scripts/seed.mjs",
-    "demo:reset": "node scripts/demo-reset.mjs",
+    "seed": "node --env-file-if-exists=.env scripts/seed.mjs",
+    "demo:reset": "node --env-file-if-exists=.env scripts/demo-reset.mjs",
     "runtime:dev": "python -m uvicorn app.main:app --app-dir apps/agent-runtime --reload",
     "runtime:lint": "python -m ruff check apps/agent-runtime",
     "runtime:test": "python -m pytest apps/agent-runtime/tests"
