@@ -1,3 +1,12 @@
+import { invoiceExceptionSeedData, invoiceExceptionWorkflowPack, loadInvoiceObservationWorkspace } from '@tacit/workflow-invoice-exception';
+import { ObservationWorkspace } from '../features/observation/observation-workspace';
+
 export default function HomePage() {
-  return <main><h1>Tacit</h1><p>Workflow learning and agent compilation.</p></main>;
+  return <ObservationWorkspace
+    projectId={invoiceExceptionSeedData.project.id}
+    workflowName={invoiceExceptionWorkflowPack.name}
+    workspace={invoiceExceptionWorkflowPack.workspaceDefinition}
+    panelData={loadInvoiceObservationWorkspace()}
+    evidence={invoiceExceptionSeedData.documents.map((document) => ({ id: document.id, title: document.title }))}
+  />;
 }

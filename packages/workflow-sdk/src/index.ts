@@ -16,6 +16,40 @@ export interface WorkflowPackSeed {
   readonly domainRecords: readonly { id: string; type: string; schemaVersion: string; payload?: unknown }[];
 }
 
+/**
+ * Serializable presentation metadata. The observation shell interprets this
+ * configuration; workflow packs own the actual labels and domain values.
+ */
+export interface WorkspaceFieldDefinition {
+  readonly id: string;
+  readonly label: string;
+}
+
+export interface WorkspacePanelDefinition {
+  readonly id: string;
+  readonly label: string;
+  readonly kind: 'document' | 'reference' | 'controls';
+  readonly fields: readonly WorkspaceFieldDefinition[];
+}
+
+export interface WorkspaceActionDefinition {
+  readonly id: string;
+  readonly label: string;
+  readonly eventAction: string;
+  readonly evidenceTypes: readonly string[];
+}
+
+export interface WorkspaceDefinition {
+  readonly panels: readonly WorkspacePanelDefinition[];
+  readonly actions: readonly WorkspaceActionDefinition[];
+  readonly outcomes: readonly { id: string; label: string }[];
+}
+
+export interface WorkspacePanelData {
+  readonly panelId: string;
+  readonly values: Readonly<Record<string, string | number | boolean | null>>;
+}
+
 export const workflowPackSeedSchema = z.object({
   project: projectSchema,
   documents: z.array(documentEvidenceSchema),
@@ -31,10 +65,10 @@ export interface WorkflowPack<Input extends z.ZodType, Outcome extends z.ZodType
   readonly version: string;
   readonly inputSchema: Input;
   readonly outcomeSchema: Outcome;
-  readonly workspaceDefinition: readonly { id: string; label: string }[];
+  readonly workspaceDefinition: WorkspaceDefinition;
   readonly eventCatalog: readonly string[];
   readonly evidenceTypes: readonly string[];
-  readonly supportedActions: readonly string[];
+  readonly supportedActions: readonly WorkspaceActionDefinition[];
   readonly approvalPolicy: unknown;
   readonly evaluationDefinition: unknown;
   readonly promptContext: string;

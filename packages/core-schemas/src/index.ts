@@ -14,7 +14,7 @@ export const projectSchema = z.object({
   createdAt: timestampSchema, updatedAt: timestampSchema,
 });
 
-export const observationSessionStatusSchema = z.enum(['recording', 'completed', 'abandoned']);
+export const observationSessionStatusSchema = z.enum(['recording', 'paused', 'completed', 'abandoned']);
 export const observationSessionSchema = z.object({
   id: identifierSchema, projectId: identifierSchema, status: observationSessionStatusSchema,
   startedAt: timestampSchema, completedAt: timestampSchema.nullable(), narration: z.string().nullable(),
