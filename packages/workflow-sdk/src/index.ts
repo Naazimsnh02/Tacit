@@ -6,6 +6,8 @@ import {
   type Project,
   type TestCase,
   type WorkflowType,
+  type ClarificationAnswerValue,
+  type ClarificationQuestionDraft,
   type WorkflowReconstruction,
 } from '@tacit/core-schemas';
 import { z } from 'zod';
@@ -77,6 +79,11 @@ export interface WorkflowPack<Input extends z.ZodType, Outcome extends z.ZodType
   readonly promptContext: string;
   /** A deterministic, pack-owned demo result when a model is not configured. */
   readonly reconstructionFallback?: (context: { readonly evidenceIds: readonly string[] }) => WorkflowReconstruction;
+  /** Optional pack-owned answer interpretation; core persists the resulting generic workflow version. */
+  readonly resolveClarificationAnswer?: (input: {
+    readonly reconstruction: WorkflowReconstruction; readonly question: ClarificationQuestionDraft;
+    readonly answer: ClarificationAnswerValue;
+  }) => WorkflowReconstruction;
   readonly seedLoader: () => WorkflowPackSeed;
 }
 

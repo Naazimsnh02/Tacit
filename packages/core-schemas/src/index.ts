@@ -87,10 +87,22 @@ export const contradictionSchema = z.object({
 });
 
 export const clarificationQuestionStatusSchema = z.enum(['open', 'answered', 'dismissed']);
+export const clarificationAnswerTypeSchema = z.enum(['single_select', 'multi_select', 'number', 'boolean', 'free_text']);
+export const clarificationSuggestedAnswerSchema = z.object({ label: z.string().min(1), value: z.string().min(1) });
+export const clarificationAnswerValueSchema = z.union([z.string().min(1), z.number().finite(), z.boolean(), z.array(z.string().min(1)).min(1)]);
+export const clarificationQuestionDraftSchema = z.object({
+  id: z.string().min(1), question: z.string().min(1), rationale: z.string().min(1),
+  relatedRuleId: z.string().min(1).nullable(), evidenceIds: z.array(identifierSchema).min(1),
+  answerType: clarificationAnswerTypeSchema, suggestedAnswers: z.array(clarificationSuggestedAnswerSchema),
+  riskIfUnanswered: z.string().min(1),
+});
 export const clarificationQuestionSchema = z.object({
   id: identifierSchema, workflowVersionId: identifierSchema, question: z.string().min(1),
   rationale: z.string().min(1), status: clarificationQuestionStatusSchema, answer: z.string().nullable(),
-  evidenceIds: z.array(identifierSchema).min(1), createdAt: timestampSchema, answeredAt: timestampSchema.nullable(),
+  relatedRuleId: z.string().min(1).nullable(), evidenceIds: z.array(identifierSchema).min(1),
+  answerType: clarificationAnswerTypeSchema, suggestedAnswers: z.array(clarificationSuggestedAnswerSchema),
+  riskIfUnanswered: z.string().min(1), answerValue: clarificationAnswerValueSchema.nullable(),
+  createdAt: timestampSchema, answeredAt: timestampSchema.nullable(),
 });
 
 export const workflowSpecificationSchema = z.object({
@@ -157,6 +169,8 @@ export type ReconstructedRule = z.infer<typeof reconstructedRuleSchema>;
 export type DecisionRule = z.infer<typeof decisionRuleSchema>;
 export type Contradiction = z.infer<typeof contradictionSchema>;
 export type ClarificationQuestion = z.infer<typeof clarificationQuestionSchema>;
+export type ClarificationQuestionDraft = z.infer<typeof clarificationQuestionDraftSchema>;
+export type ClarificationAnswerValue = z.infer<typeof clarificationAnswerValueSchema>;
 export type WorkflowSpecification = z.infer<typeof workflowSpecificationSchema>;
 export type AgentBuild = z.infer<typeof agentBuildSchema>;
 export type TestCase = z.infer<typeof testCaseSchema>;

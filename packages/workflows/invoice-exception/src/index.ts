@@ -1,7 +1,7 @@
 import { defineWorkflowPack } from '@tacit/workflow-sdk';
 import { loadInvoiceExceptionSeed } from './seed';
 import { invoiceExceptionInputSchema, invoiceExceptionOutcomeSchema } from './schemas';
-import { createInvoiceReconstructionFallback } from './reconstruction';
+import { createInvoiceReconstructionFallback, resolveInvoiceClarificationAnswer } from './reconstruction';
 
 const invoiceActions = [
   { id: 'open_document', label: 'Open document', eventAction: 'open_document', evidenceTypes: ['invoice_document'], timelineStep: 'Viewed invoice' },
@@ -50,10 +50,11 @@ export const invoiceExceptionWorkflowPack = defineWorkflowPack({
   evaluationDefinition: { fixtureSet: 'invoice-exception-historical-cases' },
   promptContext: 'Review invoice exceptions using workflow-specific evidence and policy.',
   reconstructionFallback: createInvoiceReconstructionFallback,
+  resolveClarificationAnswer: resolveInvoiceClarificationAnswer,
   seedLoader: loadInvoiceExceptionSeed,
 });
 
 export { invoiceExceptionSeedData, loadInvoiceExceptionSeed } from './seed';
 export { loadInvoiceObservationWorkspace } from './workspace';
 export * from './schemas';
-export { createInvoiceReconstructionFallback } from './reconstruction';
+export { createInvoiceReconstructionFallback, resolveInvoiceClarificationAnswer } from './reconstruction';

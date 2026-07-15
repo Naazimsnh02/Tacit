@@ -1,4 +1,4 @@
-import type { WorkflowReconstruction } from '@tacit/core-schemas';
+import type { ClarificationAnswerValue, ClarificationQuestionDraft, WorkflowReconstruction } from '@tacit/core-schemas';
 
 /** Seeded demo output. Domain interpretation remains with the invoice pack. */
 export function createInvoiceReconstructionFallback(context: {
@@ -27,4 +27,18 @@ export function createInvoiceReconstructionFallback(context: {
     approvalRequirements: ['High-value invoices require manager approval until the threshold is confirmed.'],
     automationCandidates: ['Quantity comparison', 'delivery confirmation check'],
   };
+}
+
+export function resolveInvoiceClarificationAnswer(input: {
+  readonly reconstruction: WorkflowReconstruction; readonly question: ClarificationQuestionDraft; readonly answer: ClarificationAnswerValue;
+}): WorkflowReconstruction {
+  const answer = Array.isArray(input.answer) ? input.answer.join(', ') : String(input.answer);
+  const rules = input.reconstruction.rules.map((rule) => {
+    if (rule.id !== input.question.relatedRuleId) return rule;
+    if (input.question.id === 'manager_threshold_authority') {
+      return { ...rule, condition: `Invoice value exceeds ${answer}.`, verificationStatus: 'confirmed' as const, confidence: 1 };
+    }
+    return { ...rule, verificationStatus: 'confirmed' as const, confidence: 1 };
+  });
+  return { ...input.reconstruction, rules };
 }

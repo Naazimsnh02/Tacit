@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { observationSessionStatusSchema, projectSchema, workflowTypeSchema } from './index';
+import { clarificationQuestionDraftSchema, observationSessionStatusSchema, projectSchema, workflowTypeSchema } from './index';
 
 describe('core schemas', () => {
   it('accepts workflow types without encoding a domain', () => {
@@ -16,5 +16,13 @@ describe('core schemas', () => {
 
   it('supports a generic paused observation state', () => {
     expect(observationSessionStatusSchema.parse('paused')).toBe('paused');
+  });
+
+  it('validates evidence-backed clarification metadata without workflow fields', () => {
+    expect(clarificationQuestionDraftSchema.safeParse({
+      id: 'confirm_policy', question: 'Which policy applies?', rationale: 'Sources conflict.', relatedRuleId: 'policy_rule',
+      evidenceIds: ['11111111-1111-4111-8111-111111111111'], answerType: 'single_select',
+      suggestedAnswers: [{ label: 'Documented policy', value: 'documented' }], riskIfUnanswered: 'Require review.',
+    }).success).toBe(true);
   });
 });
