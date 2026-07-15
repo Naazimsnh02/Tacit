@@ -6,6 +6,7 @@ import {
   type Project,
   type TestCase,
   type WorkflowType,
+  type WorkflowReconstruction,
 } from '@tacit/core-schemas';
 import { z } from 'zod';
 
@@ -74,6 +75,8 @@ export interface WorkflowPack<Input extends z.ZodType, Outcome extends z.ZodType
   readonly approvalPolicy: unknown;
   readonly evaluationDefinition: unknown;
   readonly promptContext: string;
+  /** A deterministic, pack-owned demo result when a model is not configured. */
+  readonly reconstructionFallback?: (context: { readonly evidenceIds: readonly string[] }) => WorkflowReconstruction;
   readonly seedLoader: () => WorkflowPackSeed;
 }
 

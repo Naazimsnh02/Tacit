@@ -1,6 +1,7 @@
 import { defineWorkflowPack } from '@tacit/workflow-sdk';
 import { loadInvoiceExceptionSeed } from './seed';
 import { invoiceExceptionInputSchema, invoiceExceptionOutcomeSchema } from './schemas';
+import { createInvoiceReconstructionFallback } from './reconstruction';
 
 const invoiceActions = [
   { id: 'open_document', label: 'Open document', eventAction: 'open_document', evidenceTypes: ['invoice_document'], timelineStep: 'Viewed invoice' },
@@ -43,14 +44,16 @@ export const invoiceExceptionWorkflowPack = defineWorkflowPack({
     ],
   },
   eventCatalog: ['open_document', 'switch_tab', 'compare_values', 'highlight_field', 'open_vendor_history', 'read_email', 'check_approval_threshold', 'select_decision', 'add_note', 'complete_review'],
-  evidenceTypes: ['invoice_document', 'purchase_order_record', 'delivery_record', 'vendor_email', 'approval_matrix'],
+  evidenceTypes: ['invoice_sop', 'invoice_document', 'purchase_order_record', 'delivery_record', 'vendor_email', 'approval_matrix'],
   supportedActions: invoiceActions,
   approvalPolicy: { type: 'value_threshold', thresholdSource: 'approval_matrix' },
   evaluationDefinition: { fixtureSet: 'invoice-exception-historical-cases' },
   promptContext: 'Review invoice exceptions using workflow-specific evidence and policy.',
+  reconstructionFallback: createInvoiceReconstructionFallback,
   seedLoader: loadInvoiceExceptionSeed,
 });
 
 export { invoiceExceptionSeedData, loadInvoiceExceptionSeed } from './seed';
 export { loadInvoiceObservationWorkspace } from './workspace';
 export * from './schemas';
+export { createInvoiceReconstructionFallback } from './reconstruction';

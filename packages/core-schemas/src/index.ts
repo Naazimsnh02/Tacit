@@ -36,9 +36,42 @@ export const documentEvidenceSchema = z.object({
 });
 
 export const automationBoundarySchema = z.enum(['deterministic', 'ai_judgment', 'human_approval', 'unsupported']);
+export const contradictionSeveritySchema = z.enum(['low', 'medium', 'high']);
 export const workflowStepSchema = z.object({
   id: z.string().min(1), title: z.string().min(1), description: z.string().min(1),
   boundary: automationBoundarySchema, evidenceIds: z.array(identifierSchema).min(1),
+});
+
+export const reconstructedWorkflowStepTypeSchema = z.enum([
+  'action', 'deterministic_rule', 'ai_judgment', 'human_decision', 'approval', 'escalation',
+]);
+export const reconstructionConfidenceSchema = z.number().min(0).max(1);
+export const reconstructedWorkflowStepSchema = z.object({
+  id: z.string().min(1), name: z.string().min(1), description: z.string().min(1),
+  type: reconstructedWorkflowStepTypeSchema, sequence: z.number().int().positive(),
+  inputs: z.array(z.string().min(1)), outputs: z.array(z.string().min(1)),
+  evidenceIds: z.array(identifierSchema).min(1), confidence: reconstructionConfidenceSchema,
+});
+export const reconstructedRuleSchema = z.object({
+  id: z.string().min(1), name: z.string().min(1), condition: z.string().min(1),
+  action: z.string().min(1), exceptions: z.array(z.string().min(1)),
+  confidence: reconstructionConfidenceSchema, evidenceIds: z.array(identifierSchema).min(1),
+  verificationStatus: z.enum(['inferred', 'confirmed', 'unverified']),
+  riskLevel: z.enum(['low', 'medium', 'high']),
+});
+export const reconstructedContradictionSchema = z.object({
+  id: z.string().min(1), sourceA: z.string().min(1), sourceB: z.string().min(1),
+  description: z.string().min(1), businessImpact: z.string().min(1),
+  severity: contradictionSeveritySchema, evidenceIds: z.array(identifierSchema).min(1),
+  requiresClarification: z.boolean(),
+});
+export const workflowReconstructionSchema = z.object({
+  workflowObjective: z.string().min(1), inputs: z.array(z.string().min(1)),
+  steps: z.array(reconstructedWorkflowStepSchema).min(1),
+  decisionPoints: z.array(z.string().min(1)), rules: z.array(reconstructedRuleSchema).min(1),
+  exceptions: z.array(z.string().min(1)), contradictions: z.array(reconstructedContradictionSchema),
+  unknowns: z.array(z.string().min(1)), approvalRequirements: z.array(z.string().min(1)),
+  automationCandidates: z.array(z.string().min(1)),
 });
 
 export const decisionRuleStatusSchema = z.enum(['inferred', 'confirmed', 'rejected']);
@@ -48,7 +81,6 @@ export const decisionRuleSchema = z.object({
   status: decisionRuleStatusSchema, evidenceIds: z.array(identifierSchema).min(1), createdAt: timestampSchema,
 });
 
-export const contradictionSeveritySchema = z.enum(['low', 'medium', 'high']);
 export const contradictionSchema = z.object({
   id: z.string().min(1), description: z.string().min(1), severity: contradictionSeveritySchema,
   evidenceIds: z.array(identifierSchema).min(2),
@@ -68,7 +100,8 @@ export const workflowSpecificationSchema = z.object({
 export const workflowVersionStatusSchema = z.enum(['draft', 'active', 'superseded']);
 export const workflowVersionSchema = z.object({
   id: identifierSchema, projectId: identifierSchema, version: z.number().int().positive(),
-  status: workflowVersionStatusSchema, specification: workflowSpecificationSchema.nullable(), createdAt: timestampSchema,
+  status: workflowVersionStatusSchema, specification: z.unknown().nullable(),
+  promptVersion: z.string().min(1).nullable(), modelRole: z.string().min(1).nullable(), createdAt: timestampSchema,
 });
 
 export const agentBuildStatusSchema = z.enum(['queued', 'running', 'succeeded', 'failed']);
@@ -118,6 +151,9 @@ export type ObservationSession = z.infer<typeof observationSessionSchema>;
 export type WorkflowEvent = z.infer<typeof workflowEventSchema>;
 export type DocumentEvidence = z.infer<typeof documentEvidenceSchema>;
 export type WorkflowStep = z.infer<typeof workflowStepSchema>;
+export type WorkflowReconstruction = z.infer<typeof workflowReconstructionSchema>;
+export type ReconstructedWorkflowStep = z.infer<typeof reconstructedWorkflowStepSchema>;
+export type ReconstructedRule = z.infer<typeof reconstructedRuleSchema>;
 export type DecisionRule = z.infer<typeof decisionRuleSchema>;
 export type Contradiction = z.infer<typeof contradictionSchema>;
 export type ClarificationQuestion = z.infer<typeof clarificationQuestionSchema>;

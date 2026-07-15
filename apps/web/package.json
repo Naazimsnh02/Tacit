@@ -6,7 +6,10 @@
   "dependencies": {
     "@tacit/config": "0.0.0",
     "@tacit/core-schemas": "0.0.0",
+    "@tacit/prompts": "0.0.0",
+    "@tacit/workflow-registry": "0.0.0",
     "@tacit/workflow-invoice-exception": "0.0.0",
+    "@tacit/workflow-sample-support": "0.0.0",
     "@tacit/workflow-sdk": "0.0.0",
     "next": "^15.1.6",
     "react": "^19.0.0",
