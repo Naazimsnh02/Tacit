@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { clarificationQuestionDraftSchema, observationSessionStatusSchema, projectSchema, workflowTypeSchema } from './index';
+import { clarificationQuestionDraftSchema, observationSessionStatusSchema, projectSchema, workflowSpecificationSchema, workflowTypeSchema } from './index';
 
 describe('core schemas', () => {
   it('accepts workflow types without encoding a domain', () => {
@@ -23,6 +23,18 @@ describe('core schemas', () => {
       id: 'confirm_policy', question: 'Which policy applies?', rationale: 'Sources conflict.', relatedRuleId: 'policy_rule',
       evidenceIds: ['11111111-1111-4111-8111-111111111111'], answerType: 'single_select',
       suggestedAnswers: [{ label: 'Documented policy', value: 'documented' }], riskIfUnanswered: 'Require review.',
+    }).success).toBe(true);
+  });
+
+  it('validates a domain-agnostic executable workflow specification', () => {
+    expect(workflowSpecificationSchema.safeParse({
+      name: 'Support escalation', version: '1', description: 'Escalate safely.', workflowVersionId: '11111111-1111-4111-8111-111111111111',
+      inputs: [{ name: 'ticket', type: 'string', required: true, description: 'Ticket reference.' }],
+      steps: [{ id: 'review', title: 'Review', description: 'Review the ticket.', boundary: 'deterministic', evidenceIds: ['22222222-2222-4222-8222-222222222222'] }],
+      rules: [{ id: 'urgent', name: 'Urgent escalation', description: 'Escalate urgent tickets.', condition: 'Ticket is urgent.', action: 'Escalate.', exceptions: [], riskLevel: 'medium', evidenceIds: ['22222222-2222-4222-8222-222222222222'], deterministic: true }],
+      approvalPolicy: { type: 'escalation' }, escalationPolicy: { conditions: ['Escalate if urgent.'] },
+      outputSchema: [{ name: 'escalated', type: 'boolean', required: true, description: 'Escalation result.' }],
+      auditPolicy: { evidenceRequired: true, retainDecisionTrace: true }, testCaseIds: [],
     }).success).toBe(true);
   });
 });

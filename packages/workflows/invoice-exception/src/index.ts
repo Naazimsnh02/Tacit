@@ -22,6 +22,21 @@ export const invoiceExceptionWorkflowPack = defineWorkflowPack({
   version: '1.0.0',
   inputSchema: invoiceExceptionInputSchema,
   outcomeSchema: invoiceExceptionOutcomeSchema,
+  runtimeSchema: {
+    inputs: [
+      { name: 'invoiceReference', type: 'string', required: true, description: 'Invoice reference.' },
+      { name: 'purchaseOrderReference', type: 'string', required: false, description: 'Purchase-order reference.' },
+      { name: 'invoiceQuantity', type: 'number', required: true, description: 'Invoiced quantity.' },
+      { name: 'purchaseOrderQuantity', type: 'number', required: false, description: 'Approved quantity.' },
+      { name: 'deliveryConfirmed', type: 'boolean', required: true, description: 'Whether delivery is confirmed.' },
+      { name: 'invoiceValue', type: 'number', required: true, description: 'Invoice value.' },
+      { name: 'duplicateInvoice', type: 'boolean', required: true, description: 'Whether a duplicate was detected.' },
+    ],
+    outputs: [
+      { name: 'decision', type: 'string', required: true, description: 'Safe workflow disposition.' },
+      { name: 'reason', type: 'string', required: true, description: 'Evidence-backed disposition rationale.' },
+    ],
+  },
   workspaceDefinition: {
     panels: [
       { id: 'invoice', label: 'Invoice document', kind: 'document', fields: [

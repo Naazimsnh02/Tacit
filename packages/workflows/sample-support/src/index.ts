@@ -6,6 +6,10 @@ const createdAt = '2026-07-15T09:00:00.000Z';
 export const sampleSupportWorkflowPack = defineWorkflowPack({
   id: 'customer_support_escalation', name: 'Customer Support Escalation Sample', version: '1.0.0',
   inputSchema: z.object({ ticketReference: z.string().min(1) }), outcomeSchema: z.object({ escalationRequired: z.boolean() }),
+  runtimeSchema: {
+    inputs: [{ name: 'ticketReference', type: 'string', required: true, description: 'Support ticket reference.' }],
+    outputs: [{ name: 'escalationRequired', type: 'boolean', required: true, description: 'Whether escalation is required.' }],
+  },
   workspaceDefinition: {
     panels: [
       { id: 'ticket', label: 'Ticket', kind: 'document', fields: [{ id: 'reference', label: 'Reference' }] },

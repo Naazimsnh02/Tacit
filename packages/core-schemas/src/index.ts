@@ -105,9 +105,23 @@ export const clarificationQuestionSchema = z.object({
   createdAt: timestampSchema, answeredAt: timestampSchema.nullable(),
 });
 
+export const runtimeFieldTypeSchema = z.enum(['string', 'number', 'boolean', 'object', 'array']);
+export const runtimeFieldSchema = z.object({
+  name: z.string().min(1), type: runtimeFieldTypeSchema, required: z.boolean(), description: z.string().min(1),
+});
+export const executableWorkflowRuleSchema = z.object({
+  id: z.string().min(1), name: z.string().min(1), description: z.string().min(1), condition: z.string().min(1),
+  action: z.string().min(1), exceptions: z.array(z.string().min(1)), riskLevel: contradictionSeveritySchema,
+  evidenceIds: z.array(identifierSchema).min(1), deterministic: z.boolean(),
+});
+/** A domain-agnostic contract consumed by the agent runtime and build pipeline. */
 export const workflowSpecificationSchema = z.object({
-  workflowVersionId: identifierSchema, steps: z.array(workflowStepSchema), rules: z.array(decisionRuleSchema),
-  approvalBoundaries: z.array(z.string().min(1)),
+  name: z.string().min(1), version: z.string().min(1), description: z.string().min(1),
+  workflowVersionId: identifierSchema, inputs: z.array(runtimeFieldSchema).min(1),
+  steps: z.array(workflowStepSchema).min(1), rules: z.array(executableWorkflowRuleSchema).min(1),
+  approvalPolicy: jsonObjectSchema, escalationPolicy: z.object({ conditions: z.array(z.string().min(1)) }),
+  outputSchema: z.array(runtimeFieldSchema).min(1), auditPolicy: z.object({ evidenceRequired: z.boolean(), retainDecisionTrace: z.boolean() }),
+  testCaseIds: z.array(identifierSchema),
 });
 export const workflowVersionStatusSchema = z.enum(['draft', 'active', 'superseded']);
 export const workflowVersionSchema = z.object({
@@ -116,11 +130,15 @@ export const workflowVersionSchema = z.object({
   promptVersion: z.string().min(1).nullable(), modelRole: z.string().min(1).nullable(), createdAt: timestampSchema,
 });
 
-export const agentBuildStatusSchema = z.enum(['queued', 'running', 'succeeded', 'failed']);
+export const agentBuildStatusSchema = z.enum(['queued', 'running', 'succeeded', 'failed', 'stale']);
 export const agentBuildSchema = z.object({
   id: identifierSchema, projectId: identifierSchema, workflowVersionId: identifierSchema,
   status: agentBuildStatusSchema, artifactPath: z.string().nullable(), manifest: jsonObjectSchema.nullable(),
   failureReason: z.string().nullable(), createdAt: timestampSchema, completedAt: timestampSchema.nullable(),
+});
+export const agentBuildLogSchema = z.object({
+  id: identifierSchema, agentBuildId: identifierSchema, stage: z.string().min(1), message: z.string().min(1),
+  createdAt: timestampSchema,
 });
 
 export const testCaseSchema = z.object({
@@ -173,6 +191,7 @@ export type ClarificationQuestionDraft = z.infer<typeof clarificationQuestionDra
 export type ClarificationAnswerValue = z.infer<typeof clarificationAnswerValueSchema>;
 export type WorkflowSpecification = z.infer<typeof workflowSpecificationSchema>;
 export type AgentBuild = z.infer<typeof agentBuildSchema>;
+export type AgentBuildLog = z.infer<typeof agentBuildLogSchema>;
 export type TestCase = z.infer<typeof testCaseSchema>;
 export type TestResult = z.infer<typeof testResultSchema>;
 export type ApprovalRequest = z.infer<typeof approvalRequestSchema>;

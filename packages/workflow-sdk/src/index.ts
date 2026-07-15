@@ -55,6 +55,14 @@ export interface WorkspacePanelData {
   readonly values: Readonly<Record<string, string | number | boolean | null>>;
 }
 
+export type RuntimeFieldType = 'string' | 'number' | 'boolean' | 'object' | 'array';
+export interface RuntimeFieldDefinition {
+  readonly name: string;
+  readonly type: RuntimeFieldType;
+  readonly required: boolean;
+  readonly description: string;
+}
+
 export const workflowPackSeedSchema = z.object({
   project: projectSchema,
   documents: z.array(documentEvidenceSchema),
@@ -70,6 +78,8 @@ export interface WorkflowPack<Input extends z.ZodType, Outcome extends z.ZodType
   readonly version: string;
   readonly inputSchema: Input;
   readonly outcomeSchema: Outcome;
+  /** Pack-owned types used to compile a generic executable workflow specification. */
+  readonly runtimeSchema: { readonly inputs: readonly RuntimeFieldDefinition[]; readonly outputs: readonly RuntimeFieldDefinition[] };
   readonly workspaceDefinition: WorkspaceDefinition;
   readonly eventCatalog: readonly string[];
   readonly evidenceTypes: readonly string[];
