@@ -792,7 +792,14 @@ Feedback upload completed.
 
 ```text
 Thread ID:
-019f6550-4f79-7ea1-bfcb-0ff381635ee5, 019f656f-697c-7372-9ebe-e20acad2dec6, 019f65a1-b896-78d0-bb9a-6b17bf069623
+Milestone 0 - 019f6550-4f79-7ea1-bfcb-0ff381635ee5, 
+Milestone 1 - 019f656f-697c-7372-9ebe-e20acad2dec6, 
+Milestone 2 - 019f65a1-b896-78d0-bb9a-6b17bf069623,
+Milestone 3 - 019f65bd-a0c0-7e30-af90-f358681c505a,
+Milestone 4 - 019f65d6-5790-73e1-8237-a725a98bb0f7,
+Milestone 5 - 019f6611-6752-7de2-8fe7-7add76cb2cee,
+Milestone 6 - 019f6626-7c7e-7c83-a243-43eb24186587,
+Milestone 7 - 019f6644-00a9-7ca2-909b-6ae90b2d1bb1
 ```
 
 Use the relevant `/feedback` Codex Session ID in the Devpost submission form.

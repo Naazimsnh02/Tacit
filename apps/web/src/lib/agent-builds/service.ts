@@ -48,13 +48,13 @@ export async function compileAgent(input: {
     const specification = createWorkflowSpecification({ workflowVersionId: version.id, version: version.version, reconstruction: reconstruction.data, workflowPack, testCaseIds });
     await progress(buildStages[1], 'Validated confirmed rules, evidence references, and approval boundaries.');
     const artifactPath = `generated/${input.projectId}/${build.id}`;
-    const files = createAgentFiles(specification);
+    const files = createAgentFiles(specification, workflowPack.createGeneratedRuntimeArtifacts?.(specification));
     await progress(buildStages[2], 'Created constrained Pydantic input and output models.');
     await progress(buildStages[3], 'Created a rule registry with a safe human-review default.');
     await progress(buildStages[4], 'Added the declared approval policy to the manifest.');
     await progress(buildStages[5], `Prepared ${testCaseIds.length} generated test fixture reference${testCaseIds.length === 1 ? '' : 's'}.`);
-    await progress(buildStages[6], 'Validated the structured specification. Code execution is restricted to the runtime milestone.');
-    await progress(buildStages[7], 'Generated tests are queued for restricted execution in Milestone 8.');
+    await progress(buildStages[6], 'Validated the structured specification; runtime validation follows packaging.');
+    await progress(buildStages[7], 'Generated tests are ready for restricted execution.');
     await input.writer.write(artifactPath, files);
     await progress(buildStages[8], 'Packaged JSON, YAML, Python templates, test fixtures, and manifest.');
     await input.repository.completeBuild({ agentBuildId: build.id, artifactPath, manifest: JSON.parse(files['manifest.json'] ?? '{}') as Record<string, unknown> });
@@ -84,14 +84,14 @@ function createWorkflowSpecification(input: {
   });
 }
 
-function createAgentFiles(specification: WorkflowSpecification): Record<string, string> {
+function createAgentFiles(specification: WorkflowSpecification, packArtifacts?: { agentSource: string; testSource: string }): Record<string, string> {
   const manifest = { specificationFile: 'specification.json', entrypoint: 'agent.py', tests: 'test_agent.py', executionStatus: 'not_run', generatedFiles: ['specification.json', 'specification.yaml', 'agent.py', 'fixtures.json', 'test_agent.py', 'manifest.json'] };
   return {
     'specification.json': `${JSON.stringify(specification, null, 2)}\n`,
     'specification.yaml': toYaml(specification),
-    'agent.py': createPythonTemplate(specification),
+    'agent.py': packArtifacts?.agentSource ?? createPythonTemplate(specification),
     'fixtures.json': `${JSON.stringify({ test_case_ids: specification.testCaseIds }, null, 2)}\n`,
-    'test_agent.py': "from agent import evaluate\n\n\ndef test_agent_requires_review_for_unimplemented_rules():\n    assert evaluate({})['status'] == 'human_review_required'\n",
+    'test_agent.py': packArtifacts?.testSource ?? "from agent import evaluate\n\n\ndef test_agent_requires_review_for_unimplemented_rules():\n    assert evaluate({})['status'] == 'human_review_required'\n",
     'manifest.json': `${JSON.stringify(manifest, null, 2)}\n`,
   };
 }

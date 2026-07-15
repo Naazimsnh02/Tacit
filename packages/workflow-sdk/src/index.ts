@@ -9,6 +9,7 @@ import {
   type ClarificationAnswerValue,
   type ClarificationQuestionDraft,
   type WorkflowReconstruction,
+  type WorkflowSpecification,
 } from '@tacit/core-schemas';
 import { z } from 'zod';
 
@@ -63,6 +64,11 @@ export interface RuntimeFieldDefinition {
   readonly description: string;
 }
 
+export interface GeneratedRuntimeArtifacts {
+  readonly agentSource: string;
+  readonly testSource: string;
+}
+
 export const workflowPackSeedSchema = z.object({
   project: projectSchema,
   documents: z.array(documentEvidenceSchema),
@@ -87,6 +93,8 @@ export interface WorkflowPack<Input extends z.ZodType, Outcome extends z.ZodType
   readonly approvalPolicy: unknown;
   readonly evaluationDefinition: unknown;
   readonly promptContext: string;
+  /** Pack-owned decision code and tests; the generic compiler only writes them. */
+  readonly createGeneratedRuntimeArtifacts?: (specification: WorkflowSpecification) => GeneratedRuntimeArtifacts;
   /** A deterministic, pack-owned demo result when a model is not configured. */
   readonly reconstructionFallback?: (context: { readonly evidenceIds: readonly string[] }) => WorkflowReconstruction;
   /** Optional pack-owned answer interpretation; core persists the resulting generic workflow version. */
