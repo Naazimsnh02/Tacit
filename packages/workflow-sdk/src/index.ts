@@ -37,6 +37,8 @@ export interface WorkspaceActionDefinition {
   readonly label: string;
   readonly eventAction: string;
   readonly evidenceTypes: readonly string[];
+  /** Workflow-pack supplied semantic grouping for the generic observation timeline. */
+  readonly timelineStep?: string;
 }
 
 export interface WorkspaceDefinition {

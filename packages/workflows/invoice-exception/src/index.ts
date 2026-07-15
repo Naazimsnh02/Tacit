@@ -3,16 +3,16 @@ import { loadInvoiceExceptionSeed } from './seed';
 import { invoiceExceptionInputSchema, invoiceExceptionOutcomeSchema } from './schemas';
 
 const invoiceActions = [
-  { id: 'open_document', label: 'Open document', eventAction: 'open_document', evidenceTypes: ['invoice_document'] },
-  { id: 'switch_tab', label: 'Switch tab', eventAction: 'switch_tab', evidenceTypes: [] },
-  { id: 'compare_values', label: 'Compare values', eventAction: 'compare_values', evidenceTypes: ['invoice_document', 'purchase_order_record'] },
-  { id: 'highlight_field', label: 'Highlight field', eventAction: 'highlight_field', evidenceTypes: ['invoice_document'] },
-  { id: 'open_vendor_history', label: 'Open vendor history', eventAction: 'open_vendor_history', evidenceTypes: ['vendor_email'] },
-  { id: 'read_email', label: 'Read email', eventAction: 'read_email', evidenceTypes: ['vendor_email'] },
-  { id: 'check_approval_threshold', label: 'Check approval threshold', eventAction: 'check_approval_threshold', evidenceTypes: ['approval_matrix'] },
-  { id: 'select_decision', label: 'Select decision', eventAction: 'select_decision', evidenceTypes: ['invoice_document'] },
-  { id: 'add_note', label: 'Add note', eventAction: 'add_note', evidenceTypes: [] },
-  { id: 'complete_review', label: 'Complete review', eventAction: 'complete_review', evidenceTypes: ['invoice_document'] },
+  { id: 'open_document', label: 'Open document', eventAction: 'open_document', evidenceTypes: ['invoice_document'], timelineStep: 'Viewed invoice' },
+  { id: 'switch_tab', label: 'Switch tab', eventAction: 'switch_tab', evidenceTypes: [], timelineStep: 'Reviewed reference evidence' },
+  { id: 'compare_values', label: 'Compare values', eventAction: 'compare_values', evidenceTypes: ['invoice_document', 'purchase_order_record'], timelineStep: 'Applied tolerance rule' },
+  { id: 'highlight_field', label: 'Highlight field', eventAction: 'highlight_field', evidenceTypes: ['invoice_document'], timelineStep: 'Reviewed invoice field' },
+  { id: 'open_vendor_history', label: 'Open vendor history', eventAction: 'open_vendor_history', evidenceTypes: ['vendor_email'], timelineStep: 'Reviewed vendor history' },
+  { id: 'read_email', label: 'Read email', eventAction: 'read_email', evidenceTypes: ['vendor_email'], timelineStep: 'Reviewed vendor email' },
+  { id: 'check_approval_threshold', label: 'Check approval threshold', eventAction: 'check_approval_threshold', evidenceTypes: ['approval_matrix'], timelineStep: 'Checked approval limit' },
+  { id: 'select_decision', label: 'Select decision', eventAction: 'select_decision', evidenceTypes: ['invoice_document'], timelineStep: 'Made final decision' },
+  { id: 'add_note', label: 'Add note', eventAction: 'add_note', evidenceTypes: [], timelineStep: 'Captured expert narration' },
+  { id: 'complete_review', label: 'Complete review', eventAction: 'complete_review', evidenceTypes: ['invoice_document'], timelineStep: 'Completed review' },
 ] as const;
 
 export const invoiceExceptionWorkflowPack = defineWorkflowPack({

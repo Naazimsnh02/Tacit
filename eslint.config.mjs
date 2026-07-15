@@ -5,6 +5,7 @@ export default [
   {
     ignores: [
       '**/.next/**',
+      '**/.pytest_cache/**',
       '**/coverage/**',
       'generated/**',
       '**/node_modules/**',

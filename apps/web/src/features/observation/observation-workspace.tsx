@@ -4,6 +4,7 @@ import type { ObservationSession, WorkflowEvent } from '@tacit/core-schemas';
 import type { WorkspaceDefinition, WorkspacePanelData } from '@tacit/workflow-sdk';
 import { useEffect, useMemo, useState } from 'react';
 import { loadObservation, observationStorageKey, type StoredObservation } from './observation-state';
+import { ObservationTimelineView } from './observation-timeline-view';
 
 interface EvidenceOption { id: string; title: string; }
 
@@ -57,9 +58,11 @@ export function ObservationWorkspace({ projectId, workflowName, workspace, panel
 
   function record(action: string, payload: Record<string, unknown> = {}) {
     if (!observation || !canRecord) return;
+    const panelId = typeof payload.panel === 'string' ? payload.panel : null;
+    const fields = panelId ? panelById.get(panelId)?.values : undefined;
     const event: WorkflowEvent = {
       id: crypto.randomUUID(), observationSessionId: observation.session.id, source: 'user', action,
-      occurredAt: new Date().toISOString(), payload, evidenceIds: selectedEvidenceIds,
+      occurredAt: new Date().toISOString(), payload: { ...payload, ...(fields ? { fields } : {}) }, evidenceIds: selectedEvidenceIds,
     };
     setObservation((current) => current ? { ...current, events: [...current.events, event] } : current);
   }
@@ -140,6 +143,7 @@ export function ObservationWorkspace({ projectId, workflowName, workspace, panel
         {observation.events.length > 0 && <details><summary>Recorded activity</summary><ol>{observation.events.slice(-5).reverse().map((event) => <li key={event.id}>{new Date(event.occurredAt).toLocaleTimeString()} — {event.action} ({event.evidenceIds.length} evidence reference{event.evidenceIds.length === 1 ? '' : 's'})</li>)}</ol></details>}
       </Panel>
     </section>
+    <ObservationTimelineView events={observation.events} actions={workspace.actions} evidence={evidence} narration={observation.session.narration} />
   </main>;
 }
 
