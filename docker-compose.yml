@@ -10,11 +10,17 @@ services:
     depends_on:
       agent-runtime:
         condition: service_healthy
+    volumes:
+      - ./generated:/app/generated
   agent-runtime:
     build:
       context: apps/agent-runtime
     ports:
       - "8000:8000"
+    environment:
+      TACIT_GENERATED_ROOT: /generated
+    volumes:
+      - ./generated:/generated:ro
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
       interval: 10s
