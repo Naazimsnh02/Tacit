@@ -36,6 +36,7 @@ export function BuildConsole({ projectId, workflowVersionId }: { readonly projec
     <h1>Agent build</h1><p>Compile the confirmed workflow into constrained, reviewable artifacts.</p>
     <button type="button" onClick={() => { void startBuild(); }} disabled={state === 'building'}>{state === 'building' ? 'Building…' : 'Build agent'}</button>
     {message ? <p role={state === 'error' ? 'alert' : 'status'}>{message}</p> : null}
+    {state === 'complete' ? <p><a href={`/projects/${projectId}/evaluations`}>Replay historical cases</a></p> : null}
     <ol aria-label="Build progress">{events.map((event, index) => <li key={`${event.stage}-${index}`}><strong>{event.stage}</strong>: {event.message}</li>)}</ol>
   </section>;
 }

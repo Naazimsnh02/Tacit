@@ -10,6 +10,7 @@ import {
   type ClarificationQuestionDraft,
   type WorkflowReconstruction,
   type WorkflowSpecification,
+  type EvaluationMatchCategory,
 } from '@tacit/core-schemas';
 import { z } from 'zod';
 
@@ -69,6 +70,16 @@ export interface GeneratedRuntimeArtifacts {
   readonly testSource: string;
 }
 
+/** Pack-owned interpretation of a domain outcome; core only persists this generic trace. */
+export interface EvaluationAssessment {
+  readonly matchCategory: EvaluationMatchCategory;
+  readonly appliedRuleIds: readonly string[];
+  readonly evidenceIds: readonly string[];
+  readonly confidence: number | null;
+  readonly failureExplanation: string | null;
+  readonly suggestedNextStep: string | null;
+}
+
 export const workflowPackSeedSchema = z.object({
   project: projectSchema,
   documents: z.array(documentEvidenceSchema),
@@ -92,6 +103,9 @@ export interface WorkflowPack<Input extends z.ZodType, Outcome extends z.ZodType
   readonly supportedActions: readonly WorkspaceActionDefinition[];
   readonly approvalPolicy: unknown;
   readonly evaluationDefinition: unknown;
+  readonly evaluateCase?: (input: {
+    readonly testCase: TestCase; readonly actualOutcome: Record<string, unknown> | null; readonly executionError: string | null;
+  }) => EvaluationAssessment;
   readonly promptContext: string;
   /** Pack-owned decision code and tests; the generic compiler only writes them. */
   readonly createGeneratedRuntimeArtifacts?: (specification: WorkflowSpecification) => GeneratedRuntimeArtifacts;

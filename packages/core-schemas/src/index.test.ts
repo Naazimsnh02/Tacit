@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { clarificationQuestionDraftSchema, observationSessionStatusSchema, projectSchema, workflowSpecificationSchema, workflowTypeSchema } from './index';
+import { clarificationQuestionDraftSchema, evaluationMatchCategorySchema, observationSessionStatusSchema, projectSchema, workflowSpecificationSchema, workflowTypeSchema } from './index';
 
 describe('core schemas', () => {
   it('accepts workflow types without encoding a domain', () => {
@@ -16,6 +16,10 @@ describe('core schemas', () => {
 
   it('supports a generic paused observation state', () => {
     expect(observationSessionStatusSchema.parse('paused')).toBe('paused');
+  });
+
+  it('classifies historical evaluation results without a workflow-specific field', () => {
+    expect(evaluationMatchCategorySchema.parse('correct_escalation')).toBe('correct_escalation');
   });
 
   it('validates evidence-backed clarification metadata without workflow fields', () => {

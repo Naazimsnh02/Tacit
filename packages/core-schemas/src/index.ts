@@ -147,14 +147,22 @@ export const testCaseSchema = z.object({
 });
 export const testRunStatusSchema = z.enum(['queued', 'running', 'passed', 'failed']);
 export const testResultStatusSchema = z.enum(['passed', 'failed', 'skipped']);
+/** Domain-neutral classification of an agent result against a labelled historical case. */
+export const evaluationMatchCategorySchema = z.enum([
+  'exact_match', 'acceptable_alternative', 'correct_escalation', 'incorrect', 'needs_clarification', 'execution_failure',
+]);
+export const testRunTypeSchema = z.enum(['generated_tests', 'historical_replay']);
 export const testRunSchema = z.object({
   id: identifierSchema, projectId: identifierSchema, workflowVersionId: identifierSchema,
   agentBuildId: identifierSchema.nullable(), status: testRunStatusSchema, startedAt: timestampSchema,
-  completedAt: timestampSchema.nullable(),
+  completedAt: timestampSchema.nullable(), runType: testRunTypeSchema.default('generated_tests'),
 });
 export const testResultSchema = z.object({
   id: identifierSchema, testRunId: identifierSchema, testCaseId: identifierSchema, status: testResultStatusSchema,
   actualOutcome: jsonObjectSchema.nullable(), message: z.string().nullable(), createdAt: timestampSchema,
+  matchCategory: evaluationMatchCategorySchema.nullable().default(null), appliedRuleIds: z.array(z.string().min(1)).default([]),
+  evidenceIds: z.array(identifierSchema).default([]), confidence: z.number().min(0).max(1).nullable().default(null),
+  failureExplanation: z.string().nullable().default(null), suggestedNextStep: z.string().nullable().default(null),
 });
 
 export const approvalRequestStatusSchema = z.enum(['pending', 'approved', 'rejected', 'cancelled']);
@@ -193,6 +201,8 @@ export type WorkflowSpecification = z.infer<typeof workflowSpecificationSchema>;
 export type AgentBuild = z.infer<typeof agentBuildSchema>;
 export type AgentBuildLog = z.infer<typeof agentBuildLogSchema>;
 export type TestCase = z.infer<typeof testCaseSchema>;
+export type EvaluationMatchCategory = z.infer<typeof evaluationMatchCategorySchema>;
+export type TestRun = z.infer<typeof testRunSchema>;
 export type TestResult = z.infer<typeof testResultSchema>;
 export type ApprovalRequest = z.infer<typeof approvalRequestSchema>;
 export type ImpactMetrics = z.infer<typeof impactMetricsSchema>;
