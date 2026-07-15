@@ -1,0 +1,13 @@
+{
+  "files": [],
+  "references": [
+    { "path": "apps/web" },
+    { "path": "packages/core-schemas" },
+    { "path": "packages/workflow-sdk" },
+    { "path": "packages/workflow-registry" },
+    { "path": "packages/prompts" },
+    { "path": "packages/config" },
+    { "path": "packages/workflows/invoice-exception" },
+    { "path": "packages/workflows/sample-support" }
+  ]
+}

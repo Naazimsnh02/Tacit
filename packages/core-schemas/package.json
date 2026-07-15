@@ -1,0 +1,7 @@
+{
+  "name": "@tacit/core-schemas",
+  "private": true,
+  "version": "0.0.0",
+  "exports": { ".": "./src/index.ts" },
+  "dependencies": { "zod": "^3.24.2" }
+}
