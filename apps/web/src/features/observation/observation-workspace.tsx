@@ -30,6 +30,7 @@ export function ObservationWorkspace({ projectId, workflowName, workspace, panel
   const [narration, setNarration] = useState('');
   const [microphoneState, setMicrophoneState] = useState<'idle' | 'listening' | 'unavailable'>('idle');
   const [error, setError] = useState<string | null>(null);
+  const [completionState, setCompletionState] = useState<'idle' | 'saving' | 'error'>('idle');
 
   useEffect(() => {
     const storedValue = window.localStorage.getItem(observationStorageKey(projectId));
@@ -88,11 +89,26 @@ export function ObservationWorkspace({ projectId, workflowName, workspace, panel
     } catch { setMicrophoneState('unavailable'); }
   }
 
-  function completeSession() {
+  async function completeSession() {
     if (!observation || !canRecord) return;
     if (!observation.decision) { setError('Select a final decision before completing the review.'); return; }
-    record('complete_review', { decision: observation.decision });
-    updateSession({ status: 'completed', completedAt: new Date().toISOString(), narration: narration.trim() || null });
+    setCompletionState('saving'); setError(null);
+    const completedAt = new Date().toISOString();
+    const completionEvent: WorkflowEvent = {
+      id: crypto.randomUUID(), observationSessionId: observation.session.id, source: 'user', action: 'complete_review', occurredAt: completedAt,
+      payload: { decision: observation.decision }, evidenceIds: selectedEvidenceIds,
+    };
+    const completedSession: ObservationSession = { ...observation.session, status: 'completed', completedAt, narration: narration.trim() || null };
+    try {
+      const persisted = await fetch(`/api/projects/${projectId}/sessions`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ session: completedSession, events: [...observation.events, completionEvent] }) });
+      const persistedBody = await persisted.json() as { error?: string };
+      if (!persisted.ok) throw new Error(persistedBody.error ?? 'Unable to save the observation.');
+      const reconstructed = await fetch(`/api/projects/${projectId}/workflow/reconstruct`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ sessionId: completedSession.id, finalDecision: observation.decision }) });
+      const reconstructedBody = await reconstructed.json() as { workflowVersionId?: string; error?: string };
+      if (!reconstructed.ok || !reconstructedBody.workflowVersionId) throw new Error(reconstructedBody.error ?? 'Unable to reconstruct the workflow.');
+      setObservation({ ...observation, session: completedSession, events: [...observation.events, completionEvent] });
+      window.location.assign(`/workflow-versions/${reconstructedBody.workflowVersionId}/clarify?projectId=${encodeURIComponent(projectId)}`);
+    } catch (reason) { setCompletionState('error'); setError(reason instanceof Error ? reason.message : 'Unable to complete the observation.'); }
   }
 
   const documentPanel = workspace.panels.find((panel) => panel.kind === 'document');
@@ -128,7 +144,7 @@ export function ObservationWorkspace({ projectId, workflowName, workspace, panel
           {status !== 'recording' && status !== 'paused' && <button onClick={startSession}>Start session</button>}
           {status === 'recording' && <button onClick={() => updateSession({ status: 'paused' })}>Pause</button>}
           {status === 'paused' && <button onClick={() => updateSession({ status: 'recording' })}>Resume</button>}
-          <button disabled={!canRecord} onClick={completeSession}>Complete</button>
+          <button disabled={!canRecord || completionState === 'saving'} onClick={() => { void completeSession(); }}>{completionState === 'saving' ? 'Saving and reconstructing…' : 'Complete and continue'}</button>
         </div>
         <label style={{ display: 'block', marginTop: 16 }}>Narration<textarea value={narration} onChange={(event) => setNarration(event.target.value)} placeholder="Explain what you are checking and why." disabled={!canRecord} style={{ width: '100%', minHeight: 88, display: 'block', marginTop: 6 }} /></label>
         <div style={{ display: 'flex', gap: 8, marginTop: 8 }}><button disabled={!canRecord} onClick={saveNarration}>Save narration</button><button disabled={!canRecord} onClick={captureMicrophone}>Use microphone</button></div>
