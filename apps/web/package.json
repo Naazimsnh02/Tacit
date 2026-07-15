@@ -2,15 +2,19 @@
   "name": "@tacit/web",
   "private": true,
   "version": "0.0.0",
-  "scripts": { "dev": "next dev", "build": "next build" },
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build"
+  },
   "dependencies": {
     "@tacit/config": "0.0.0",
     "@tacit/core-schemas": "0.0.0",
     "@tacit/prompts": "0.0.0",
-    "@tacit/workflow-registry": "0.0.0",
     "@tacit/workflow-invoice-exception": "0.0.0",
+    "@tacit/workflow-registry": "0.0.0",
     "@tacit/workflow-sample-support": "0.0.0",
     "@tacit/workflow-sdk": "0.0.0",
+    "@xyflow/react": "^12.11.2",
     "next": "^15.1.6",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
