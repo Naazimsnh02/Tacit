@@ -9,6 +9,7 @@ describe('evidence upload validation', () => {
   it('requires a matching permitted MIME type, extension, checksum, and consent', () => {
     expect(validateUpload(uploadRequestSchema.parse(valid))).toMatchObject({ filename: 'Review SOP.pdf', extension: '.pdf' });
     expect(() => validateUpload(uploadRequestSchema.parse({ ...valid, mediaType: 'video/mp4' }))).toThrow(EvidenceUploadError);
+    expect(() => validateUpload(uploadRequestSchema.parse({ ...valid, filename: 'legacy.doc', mediaType: 'application/msword' }))).toThrow(EvidenceUploadError);
     expect(uploadRequestSchema.safeParse({ ...valid, processingConsent: false }).success).toBe(false);
   });
   it('rejects spoofed PDF bytes before processing', () => {

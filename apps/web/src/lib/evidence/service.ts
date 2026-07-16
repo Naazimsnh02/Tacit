@@ -18,8 +18,8 @@ export const completeUploadSchema = z.object({ checksumSha256: z.string().regex(
 
 type UploadPolicy = { readonly extensions: readonly string[]; readonly mimeTypes: readonly string[]; readonly maxBytes: number };
 const policies: Record<z.infer<typeof evidenceArtifactTypeSchema>, UploadPolicy> = {
-  sop: { extensions: ['.pdf', '.doc', '.docx', '.txt', '.md'], mimeTypes: ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'text/plain', 'text/markdown'], maxBytes: 50 * megabyte },
-  document: { extensions: ['.pdf', '.doc', '.docx', '.txt', '.md'], mimeTypes: ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'text/plain', 'text/markdown'], maxBytes: 50 * megabyte },
+  sop: { extensions: ['.pdf', '.docx', '.txt', '.md'], mimeTypes: ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'text/plain', 'text/markdown'], maxBytes: 50 * megabyte },
+  document: { extensions: ['.pdf', '.docx', '.txt', '.md'], mimeTypes: ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'text/plain', 'text/markdown'], maxBytes: 50 * megabyte },
   spreadsheet: { extensions: ['.csv', '.xlsx'], mimeTypes: ['text/csv', 'application/csv', 'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'], maxBytes: 50 * megabyte },
   image: { extensions: ['.png', '.jpg', '.jpeg', '.webp'], mimeTypes: ['image/png', 'image/jpeg', 'image/webp'], maxBytes: 25 * megabyte },
   audio: { extensions: ['.mp3', '.m4a', '.wav', '.webm'], mimeTypes: ['audio/mpeg', 'audio/mp4', 'audio/wav', 'audio/webm'], maxBytes: 250 * megabyte },
