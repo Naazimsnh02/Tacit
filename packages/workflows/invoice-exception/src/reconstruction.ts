@@ -36,9 +36,19 @@ export function resolveInvoiceClarificationAnswer(input: {
   const rules = input.reconstruction.rules.map((rule) => {
     if (rule.id !== input.question.relatedRuleId) return rule;
     if (rule.id === 'manager_threshold') {
-      return { ...rule, condition: `Invoice value exceeds ${answer}.`, verificationStatus: 'confirmed' as const, confidence: 1 };
+      return {
+        ...rule,
+        condition: resolveManagerThresholdCondition(rule.condition, answer),
+        verificationStatus: 'confirmed' as const,
+        confidence: 1,
+      };
     }
-    return { ...rule, verificationStatus: 'confirmed' as const, confidence: 1 };
+    return {
+      ...rule,
+      action: input.answer === false ? 'Require human review for this decision.' : rule.action,
+      verificationStatus: 'confirmed' as const,
+      confidence: 1,
+    };
   });
   const resolvedContradictions = input.reconstruction.contradictions.filter(
     (contradiction) => input.question.question !== `How should the agent resolve this conflict: ${contradiction.description}?`,
@@ -47,4 +57,16 @@ export function resolveInvoiceClarificationAnswer(input: {
     (unknown) => input.question.question !== unknown,
   );
   return { ...input.reconstruction, rules, contradictions: resolvedContradictions, unknowns: resolvedUnknowns };
+}
+
+function resolveManagerThresholdCondition(existingCondition: string, answer: string): string {
+  // A yes/no confirmation must preserve the previously inferred threshold. Free-text
+  // conflict answers can select the SOP (₹300,000) or the observed threshold
+  // (₹500,000), or state an explicit number.
+  if (answer === 'true' || answer === 'false') return existingCondition;
+  const numericThreshold = answer.replace(/[^0-9]/g, '');
+  if (numericThreshold) return `Invoice value exceeds ${numericThreshold}.`;
+  if (/\bsop\b|documented policy/i.test(answer)) return 'Invoice value exceeds 300000.';
+  if (/\bobserved\b|\bcurrent\b|manager threshold/i.test(answer)) return 'Invoice value exceeds 500000.';
+  return existingCondition;
 }

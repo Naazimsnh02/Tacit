@@ -36,6 +36,8 @@ describe('agent compilation', () => {
     expect(writer.files['specification.json']).toContain('approvalPolicy');
     expect(writer.files['specification.yaml']).toContain('testCaseIds');
     expect(writer.files['agent.py']).toContain('delivery confirmation');
+    expect(writer.files['agent.py']).toContain("'decision': 'manager_approval'");
+    expect(writer.files['agent.py']).toContain("'decision': 'escalate_to_procurement'");
     expect(writer.files['test_agent.py']).toContain('test_quantity_tolerance_requires_delivery_confirmation');
     expect(repository.logs.map((log) => log.stage)).toContain('Build complete');
     expect(repository.completed?.manifest.executionStatus).toBe('not_run');

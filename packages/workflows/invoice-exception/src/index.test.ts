@@ -36,9 +36,20 @@ describe('invoice exception workflow pack', () => {
 
     const conflictResolved = resolveInvoiceClarificationAnswer({ reconstruction, question: conflictQuestion, answer: '₹500,000' });
     expect(conflictResolved.contradictions).toHaveLength(0);
-    expect(conflictResolved.rules.find((rule) => rule.id === 'manager_threshold')?.condition).toContain('₹500,000');
+    expect(conflictResolved.rules.find((rule) => rule.id === 'manager_threshold')?.condition).toContain('500000');
 
     const fullyResolved = resolveInvoiceClarificationAnswer({ reconstruction: conflictResolved, question: unknownQuestion, answer: '₹500,000' });
     expect(fullyResolved.unknowns).toHaveLength(0);
+  });
+
+  it('preserves a confirmed manager threshold instead of replacing it with a boolean answer', () => {
+    const reconstruction = createInvoiceReconstructionFallback({ evidenceIds: ['11111111-1111-4111-8111-111111111111'] });
+    const question: ClarificationQuestionDraft = {
+      id: 'confirm_manager_threshold', question: 'Should the generated agent apply this rule: Invoice value exceeds the applicable manager threshold.?',
+      rationale: 'Confirm the inferred approval rule.', relatedRuleId: 'manager_threshold', evidenceIds: reconstruction.rules[1]!.evidenceIds,
+      answerType: 'boolean', suggestedAnswers: [], riskIfUnanswered: 'Keep this behind human review.',
+    };
+    const resolved = resolveInvoiceClarificationAnswer({ reconstruction, question, answer: true });
+    expect(resolved.rules.find((rule) => rule.id === 'manager_threshold')?.condition).toBe('Invoice value exceeds the applicable manager threshold.');
   });
 });
