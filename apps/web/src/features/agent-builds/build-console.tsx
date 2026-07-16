@@ -1,6 +1,8 @@
 'use client';
 
 import { useState } from 'react';
+import { RecoverableError } from '../demo/recoverable-error';
+import { StatusBadge } from '../demo/status-badge';
 
 interface ProgressEvent { readonly stage: string; readonly message: string }
 
@@ -35,7 +37,8 @@ export function BuildConsole({ projectId, workflowVersionId }: { readonly projec
   return <section>
     <h1>Agent build</h1><p>Compile the confirmed workflow into constrained, reviewable artifacts.</p>
     <button type="button" onClick={() => { void startBuild(); }} disabled={state === 'building'}>{state === 'building' ? 'Building…' : 'Build agent'}</button>
-    {message ? <p role={state === 'error' ? 'alert' : 'status'}>{message}</p> : null}
+    <p><StatusBadge status={state === 'building' ? 'building' : state === 'complete' ? 'ready_to_build' : state === 'error' ? 'tests_failed' : 'draft'} /></p>
+    {state === 'error' ? <RecoverableError message="The agent build did not finish. Retry the build or return to the confirmed workflow." onRetry={() => { void startBuild(); }} previousHref={`/workflow-versions/${workflowVersionId}/clarify?projectId=${encodeURIComponent(projectId)}`} /> : message ? <p role="status">{message}</p> : null}
     {state === 'complete' ? <p><a href={`/projects/${projectId}/evaluations`}>Replay historical cases</a></p> : null}
     <ol aria-label="Build progress">{events.map((event, index) => <li key={`${event.stage}-${index}`}><strong>{event.stage}</strong>: {event.message}</li>)}</ol>
   </section>;

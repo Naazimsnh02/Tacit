@@ -5,6 +5,8 @@ import type { WorkspaceDefinition, WorkspacePanelData } from '@tacit/workflow-sd
 import { useEffect, useMemo, useState } from 'react';
 import { loadObservation, observationStorageKey, type StoredObservation } from './observation-state';
 import { ObservationTimelineView } from './observation-timeline-view';
+import { DemoControls } from '../demo/demo-controls';
+import { StatusBadge } from '../demo/status-badge';
 
 interface EvidenceOption { id: string; title: string; }
 
@@ -51,6 +53,11 @@ export function ObservationWorkspace({ projectId, workflowName, workspace, panel
     setError(null);
     setNarration('');
     setObservation(loadObservation(projectId, null));
+  }
+
+  function resetDemo() {
+    window.localStorage.removeItem(observationStorageKey(projectId));
+    setNarration(''); setError(null); setCompletionState('idle'); setObservation(loadObservation(projectId, null));
   }
 
   function updateSession(update: Partial<ObservationSession>) {
@@ -119,6 +126,7 @@ export function ObservationWorkspace({ projectId, workflowName, workspace, panel
 
   return <main style={{ minHeight: '100vh', background: '#f5f7fb', color: '#172033', fontFamily: 'Arial, sans-serif', padding: 24 }}>
     <header style={{ maxWidth: 1500, margin: '0 auto 20px' }}>
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 12 }}><DemoControls stage="observe" onReset={resetDemo} onStart={startSession} /></div>
       <p style={{ color: '#59657a', margin: 0 }}>Observe / {workflowName}</p>
       <h1 style={{ margin: '6px 0' }}>Invoice exception demonstration</h1>
       <p style={{ margin: 0, color: '#59657a' }}>Record the expert’s evidence-backed review as structured workflow events.</p>
@@ -139,7 +147,7 @@ export function ObservationWorkspace({ projectId, workflowName, workspace, panel
         </div>
       </Panel>
       <Panel title="Observation controls">
-        <p><strong>Status:</strong> {status}</p>
+        <p><strong>Status:</strong> {status === 'recording' ? <StatusBadge status="observing" /> : <StatusBadge status="draft" />}</p>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
           {status !== 'recording' && status !== 'paused' && <button onClick={startSession}>Start session</button>}
           {status === 'recording' && <button onClick={() => updateSession({ status: 'paused' })}>Pause</button>}
@@ -155,7 +163,7 @@ export function ObservationWorkspace({ projectId, workflowName, workspace, panel
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>{workspace.outcomes.map((outcome) => <button key={outcome.id} disabled={!canRecord} onClick={() => chooseDecision(outcome.id)} style={{ outline: observation.decision === outcome.id ? '2px solid #233d85' : undefined }}>{outcome.label}</button>)}</div>
         <label style={{ display: 'block', marginTop: 16 }}>Notes<textarea value={observation.notes} disabled={!canRecord} onChange={(event) => setObservation((current) => current ? { ...current, notes: event.target.value } : current)} style={{ width: '100%', minHeight: 56, display: 'block', marginTop: 6 }} /></label>
         <p><strong>Recorded events:</strong> {observation.events.length}</p>
-        {error && <p role="alert" style={{ color: '#b42318' }}>{error}</p>}
+        {error && <section role="alert" style={{ color: '#b42318' }}><p>We could not complete this observation. Your recorded steps are still available.</p><button type="button" onClick={() => { void completeSession(); }}>Retry</button><button type="button" onClick={resetDemo}>Reset demo</button></section>}
         {observation.events.length > 0 && <details><summary>Recorded activity</summary><ol>{observation.events.slice(-5).reverse().map((event) => <li key={event.id}>{new Date(event.occurredAt).toLocaleTimeString()} — {event.action} ({event.evidenceIds.length} evidence reference{event.evidenceIds.length === 1 ? '' : 's'})</li>)}</ol></details>}
       </Panel>
     </section>

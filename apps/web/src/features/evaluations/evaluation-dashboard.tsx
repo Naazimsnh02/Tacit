@@ -2,6 +2,8 @@
 
 import { useState } from 'react';
 import type { EvaluationMetrics } from '../../lib/evaluations/service';
+import { RecoverableError } from '../demo/recoverable-error';
+import { StatusBadge } from '../demo/status-badge';
 
 const metricLabels: ReadonlyArray<[keyof EvaluationMetrics, string]> = [
   ['totalCases', 'Total cases'], ['exactMatches', 'Exact matches'], ['acceptableAlternatives', 'Acceptable alternatives'],
@@ -28,8 +30,10 @@ export function EvaluationDashboard({ projectId }: { readonly projectId: string 
     <h1>Historical replay</h1>
     <p>Replay labelled historical cases against the latest successful generated build.</p>
     <button type="button" disabled={running} onClick={() => { void replay(); }}>{running ? 'Replaying…' : 'Replay historical cases'}</button>
-    {error ? <p role="alert">{error}</p> : null}
+    {running ? <p role="status">Running the ten seeded historical cases and comparing evidence-backed outcomesâ€¦</p> : null}
+    {error ? <RecoverableError message="Historical replay could not be completed." onRetry={() => { void replay(); }} /> : null}
     {metrics ? <dl aria-label="Evaluation metrics">{metricLabels.map(([key, label]) => <div key={key}><dt>{label}</dt><dd>{key.includes('Rate') || key.includes('Coverage') ? `${metrics[key]}%` : metrics[key] ?? '—'}</dd></div>)}</dl> : null}
+    {metrics ? <p><StatusBadge status={metrics.incorrectCases > 0 ? 'tests_failed' : 'verified'} /></p> : null}
     {runId ? <a href={`/test-runs/${runId}`}>Inspect replay results</a> : null}
   </section>;
 }
