@@ -20,7 +20,7 @@ export function DemoControls({ stage, onReset, onStart }: { readonly stage: Demo
   function reset() {
     window.localStorage.removeItem(demoProgressStorageKey);
     onReset?.();
-    window.location.assign('/');
+    window.location.assign('/demo');
   }
 
   return <aside aria-label="Demo controls" className="header-actions">

@@ -48,6 +48,14 @@ h3 { font-size: 15px; line-height: 1.3; margin-bottom: 6px; }
 .sidebar-footer { margin-top: auto; padding: 10px 8px; color: var(--text-muted); font-size: 12px; }
 .app-main { min-width: 0; padding: 32px 40px 48px; }
 .content { max-width: 1440px; margin: 0 auto; }
+.mode-entry, .auth-page { min-height: 100vh; display: grid; place-items: center; padding: 24px; }
+.mode-entry-card, .auth-card { width: min(680px, 100%); background: var(--surface); border: 1px solid var(--border); border-radius: 18px; padding: 32px; box-shadow: var(--shadow); }
+.mode-actions, .inline-form { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 20px; }
+.production-page { max-width: 1180px; margin: 0 auto; padding: 28px 24px 48px; display: grid; gap: 18px; }
+.production-header, .production-intro { display: flex; justify-content: space-between; align-items: center; gap: 18px; }
+.production-header > div { display: flex; align-items: center; gap: 8px; }
+.production-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.inline-form .input { flex: 1 1 180px; }
 .page-header { display: flex; justify-content: space-between; gap: 24px; align-items: flex-start; margin-bottom: 26px; }
 .page-header-copy { max-width: 760px; }
 .breadcrumb { color: var(--text-muted); font-size: 12px; font-weight: 650; margin-bottom: 8px; }

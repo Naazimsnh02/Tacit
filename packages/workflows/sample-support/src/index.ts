@@ -27,7 +27,7 @@ export const sampleSupportWorkflowPack = defineWorkflowPack({
   ],
   approvalPolicy: { type: 'escalation_required' }, evaluationDefinition: { fixtureSet: 'sample-support' }, promptContext: 'Evaluate a support escalation.',
   seedLoader: () => ({
-    project: { id: '33333333-3333-4333-8333-333333333333', name: 'Support Escalation Sample', workflowType: 'customer_support_escalation', status: 'draft', configuration: {}, createdAt, updatedAt: createdAt },
+    project: { id: '33333333-3333-4333-8333-333333333333', organizationId: '00000000-0000-4000-8000-000000000001', mode: 'demo', createdBy: null, name: 'Support Escalation Sample', workflowType: 'customer_support_escalation', status: 'draft', configuration: {}, createdAt, updatedAt: createdAt },
     documents: [],
     testCases: [{ id: 'bbbbbbb1-0000-4000-8000-000000000001', projectId: '33333333-3333-4333-8333-333333333333', label: 'Escalate an urgent ticket', input: { ticketReference: 'SUP-001' }, expectedOutcome: { escalationRequired: true }, evidenceIds: [], createdAt }],
     domainRecords: [{ id: 'support-rule-1', type: 'approval_rule', schemaVersion: '1.0', payload: { urgent: true } }],

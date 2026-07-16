@@ -8,8 +8,18 @@ export const timestampSchema = z.string().datetime({ offset: true });
 export const jsonObjectSchema = z.record(z.unknown());
 
 export const projectStatusSchema = z.enum(['draft', 'active', 'archived']);
+export const productModeSchema = z.enum(['production', 'demo']);
+export const organizationRoleSchema = z.enum(['owner', 'admin', 'member', 'viewer']);
+export const organizationSchema = z.object({
+  id: identifierSchema, name: z.string().min(1).max(160), slug: z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
+  mode: productModeSchema, createdBy: identifierSchema.nullable(), createdAt: timestampSchema,
+});
+export const organizationMembershipSchema = z.object({
+  organizationId: identifierSchema, userId: identifierSchema, role: organizationRoleSchema, createdAt: timestampSchema,
+});
 export const projectSchema = z.object({
-  id: identifierSchema, name: z.string().min(1).max(160), workflowType: workflowTypeSchema,
+  id: identifierSchema, organizationId: identifierSchema, mode: productModeSchema, createdBy: identifierSchema.nullable(),
+  name: z.string().min(1).max(160), workflowType: workflowTypeSchema,
   status: projectStatusSchema, configuration: jsonObjectSchema.default({}),
   createdAt: timestampSchema, updatedAt: timestampSchema,
 });
@@ -191,6 +201,10 @@ export const impactMetricsSchema = z.object({
 });
 
 export type WorkflowType = z.infer<typeof workflowTypeSchema>;
+export type ProductMode = z.infer<typeof productModeSchema>;
+export type OrganizationRole = z.infer<typeof organizationRoleSchema>;
+export type Organization = z.infer<typeof organizationSchema>;
+export type OrganizationMembership = z.infer<typeof organizationMembershipSchema>;
 export type Project = z.infer<typeof projectSchema>;
 export type ObservationSession = z.infer<typeof observationSessionSchema>;
 export type WorkflowEvent = z.infer<typeof workflowEventSchema>;

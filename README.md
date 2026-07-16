@@ -168,7 +168,7 @@ The generated agent is tested in a restricted runtime before it is considered re
 
 ## Demo
 
-The demo uses invoice exception review.
+The demo uses invoice exception review and is explicitly isolated from production projects. Open `/demo` for synthetic guided data, or `/projects` to sign in and create a tenant-isolated production project. See [the production contract](docs/production-contract.md) for mode, retention, and v1 safety boundaries.
 
 ### Example workflow
 

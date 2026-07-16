@@ -1,9 +1,3 @@
-import { invoiceExceptionSeedData } from '@tacit/workflow-invoice-exception';
-import { DemoOverview } from '../features/demo/demo-overview';
-
 export default function HomePage() {
-  return <DemoOverview projectId={invoiceExceptionSeedData.project.id} projectName={invoiceExceptionSeedData.project.name} metrics={[
-    { label: 'Workflow version', value: 'Draft v1' }, { label: 'Latest build', value: 'Awaiting build' },
-    { label: 'Test score', value: '12 / 12 after repair' }, { label: 'Safe automation coverage', value: '70%' },
-  ]} />;
+  return <main className="mode-entry"><section className="mode-entry-card"><span className="brand"><span className="brand-mark">T</span><span>Tacit</span></span><p className="eyebrow">Workflow learning and agent compilation</p><h1>Choose a clearly separated workspace.</h1><p className="muted">Production projects require an authenticated organization. The guided invoice flow uses synthetic, read-only demo data and never shares a tenant or reset operation with production.</p><div className="mode-actions"><a className="btn btn-primary" href="/projects">Open production workspace</a><a className="btn btn-secondary" href="/demo">Open guided demo</a></div></section></main>;
 }

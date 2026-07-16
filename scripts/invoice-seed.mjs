@@ -31,7 +31,7 @@ export function validateInvoiceSeed(seed) {
 }
 
 function toProject(project) {
-  return { id: project.id, name: project.name, workflow_type: project.workflowType, status: project.status, configuration: project.configuration, created_at: project.createdAt, updated_at: project.updatedAt };
+  return { id: project.id, organization_id: project.organizationId, mode: project.mode, created_by: project.createdBy, name: project.name, workflow_type: project.workflowType, status: project.status, configuration: project.configuration, created_at: project.createdAt, updated_at: project.updatedAt };
 }
 
 function toDocument(document) {
@@ -66,7 +66,8 @@ async function request(config, method, tableOrQuery, body) {
 export async function persistInvoiceSeed(seed) {
   const config = supabaseConfiguration();
   if (!config) return false;
-  await request(config, 'DELETE', `projects?id=eq.${seed.project.id}`);
+  if (seed.project.mode !== 'demo') throw new Error('Only an explicit demo project can be reset.');
+  await request(config, 'DELETE', `projects?id=eq.${seed.project.id}&mode=eq.demo`);
   await request(config, 'POST', 'projects', [toProject(seed.project)]);
   await request(config, 'POST', 'documents', seed.documents.map(toDocument));
   await request(config, 'POST', 'test_cases', seed.testCases.map(toTestCase));
