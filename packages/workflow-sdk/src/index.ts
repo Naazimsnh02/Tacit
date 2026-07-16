@@ -11,6 +11,8 @@ import {
   type WorkflowReconstruction,
   type WorkflowSpecification,
   type EvaluationMatchCategory,
+  type ApprovalRequest,
+  type ImpactMetrics,
 } from '@tacit/core-schemas';
 import { z } from 'zod';
 
@@ -19,6 +21,8 @@ export interface WorkflowPackSeed {
   readonly documents: readonly DocumentEvidence[];
   readonly testCases: readonly TestCase[];
   readonly domainRecords: readonly { id: string; type: string; schemaVersion: string; payload?: unknown }[];
+  readonly approvalRequests: readonly Omit<ApprovalRequest, 'id'>[];
+  readonly impactSnapshots: readonly Omit<ImpactMetrics, 'id'>[];
 }
 
 /**
@@ -87,6 +91,19 @@ export const workflowPackSeedSchema = z.object({
   domainRecords: z.array(z.object({
     id: z.string().min(1), type: z.string().min(1), schemaVersion: z.string().min(1), payload: z.unknown(),
   })),
+  approvalRequests: z.array(z.object({
+    projectId: z.string().uuid(), workflowVersionId: z.string().uuid().nullable(), status: z.enum(['pending', 'approved', 'rejected', 'cancelled']),
+    reason: z.string().min(1), riskLevel: z.enum(['low', 'medium', 'high']), requestedAction: z.string().min(1), agentRecommendation: z.string().min(1),
+    confidence: z.number().min(0).max(1).nullable(), appliedRuleIds: z.array(z.string().min(1)), agentBuildId: z.string().uuid().nullable(),
+    evidenceIds: z.array(z.string().uuid()).min(1), payload: z.record(z.unknown()), createdAt: z.string().datetime({ offset: true }),
+  })).default([]),
+  impactSnapshots: z.array(z.object({
+    projectId: z.string().uuid(), workflowVersionId: z.string().uuid().nullable(), observedCases: z.number().int().nonnegative(),
+    automationCoveragePercent: z.number().min(0).max(100), accuracyPercent: z.number().min(0).max(100), estimatedMinutesSaved: z.number().nonnegative(),
+    manualSteps: z.number().int().nonnegative(), automatedSteps: z.number().int().nonnegative(), aiAssistedSteps: z.number().int().nonnegative(), humanRequiredSteps: z.number().int().nonnegative(),
+    manualHandlingMinutes: z.number().nonnegative(), estimatedAutomatedMinutes: z.number().nonnegative(), reviewRatePercent: z.number().min(0).max(100), rulesDiscovered: z.number().int().nonnegative(), undocumentedExceptions: z.number().int().nonnegative(),
+    sources: z.record(z.enum(['observed', 'estimated'])), assumptions: z.array(z.string().min(1)), capturedAt: z.string().datetime({ offset: true }),
+  })).default([]),
 });
 
 export interface WorkflowPack<Input extends z.ZodType, Outcome extends z.ZodType> {

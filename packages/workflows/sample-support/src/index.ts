@@ -31,5 +31,6 @@ export const sampleSupportWorkflowPack = defineWorkflowPack({
     documents: [],
     testCases: [{ id: 'bbbbbbb1-0000-4000-8000-000000000001', projectId: '33333333-3333-4333-8333-333333333333', label: 'Escalate an urgent ticket', input: { ticketReference: 'SUP-001' }, expectedOutcome: { escalationRequired: true }, evidenceIds: [], createdAt }],
     domainRecords: [{ id: 'support-rule-1', type: 'approval_rule', schemaVersion: '1.0', payload: { urgent: true } }],
+    approvalRequests: [], impactSnapshots: [],
   }),
 });

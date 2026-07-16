@@ -18,8 +18,10 @@ export function validateInvoiceSeed(seed) {
     approvalMatrices: recordsByType.approval_matrix?.length ?? 0,
     expertDemonstrations: recordsByType.expert_demonstration?.length ?? 0,
     historicalCases: seed.testCases.length,
+    approvalRequests: seed.approvalRequests?.length ?? 0,
+    impactSnapshots: seed.impactSnapshots?.length ?? 0,
   };
-  const expected = { documents: 1, invoices: 10, purchaseOrders: 10, deliveries: 10, vendorEmails: 5, approvalMatrices: 1, expertDemonstrations: 1, historicalCases: 10 };
+  const expected = { documents: 1, invoices: 10, purchaseOrders: 10, deliveries: 10, vendorEmails: 5, approvalMatrices: 1, expertDemonstrations: 1, historicalCases: 10, approvalRequests: 1, impactSnapshots: 1 };
   for (const [key, value] of Object.entries(expected)) {
     if (counts[key] !== value) throw new Error(`Expected ${value} ${key}; received ${counts[key]}.`);
   }
@@ -38,6 +40,12 @@ function toDocument(document) {
 
 function toTestCase(testCase) {
   return { id: testCase.id, project_id: testCase.projectId, label: testCase.label, input: testCase.input, expected_outcome: testCase.expectedOutcome, evidence_ids: testCase.evidenceIds, created_at: testCase.createdAt };
+}
+function toApprovalRequest(request) {
+  return { project_id: request.projectId, workflow_version_id: request.workflowVersionId, status: request.status, reason: request.reason, risk_level: request.riskLevel, requested_action: request.requestedAction, agent_recommendation: request.agentRecommendation, confidence: request.confidence, applied_rule_ids: request.appliedRuleIds, agent_build_id: request.agentBuildId, evidence_ids: request.evidenceIds, payload: request.payload, created_at: request.createdAt };
+}
+function toImpactSnapshot(snapshot) {
+  return { project_id: snapshot.projectId, workflow_version_id: snapshot.workflowVersionId, observed_cases: snapshot.observedCases, automation_coverage_percent: snapshot.automationCoveragePercent, accuracy_percent: snapshot.accuracyPercent, estimated_minutes_saved: snapshot.estimatedMinutesSaved, manual_steps: snapshot.manualSteps, automated_steps: snapshot.automatedSteps, ai_assisted_steps: snapshot.aiAssistedSteps, human_required_steps: snapshot.humanRequiredSteps, manual_handling_minutes: snapshot.manualHandlingMinutes, estimated_automated_minutes: snapshot.estimatedAutomatedMinutes, review_rate_percent: snapshot.reviewRatePercent, rules_discovered: snapshot.rulesDiscovered, undocumented_exceptions: snapshot.undocumentedExceptions, sources: snapshot.sources, assumptions: snapshot.assumptions, captured_at: snapshot.capturedAt };
 }
 
 function supabaseConfiguration() {
@@ -62,6 +70,8 @@ export async function persistInvoiceSeed(seed) {
   await request(config, 'POST', 'projects', [toProject(seed.project)]);
   await request(config, 'POST', 'documents', seed.documents.map(toDocument));
   await request(config, 'POST', 'test_cases', seed.testCases.map(toTestCase));
+  if (seed.approvalRequests?.length) await request(config, 'POST', 'approval_requests', seed.approvalRequests.map(toApprovalRequest));
+  if (seed.impactSnapshots?.length) await request(config, 'POST', 'impact_snapshots', seed.impactSnapshots.map(toImpactSnapshot));
   await request(config, 'POST', 'invoice_exception_records', seed.domainRecords.map((record) => ({ project_id: seed.project.id, record_id: record.id, record_type: record.type, schema_version: record.schemaVersion, payload: record.payload })));
   return true;
 }

@@ -24,4 +24,10 @@ describe('invoice exception seed data', () => {
   it('exposes the same data through the workflow-pack seed loader', () => {
     expect(invoiceExceptionWorkflowPack.seedLoader()).toBe(invoiceExceptionSeedData);
   });
+
+  it('includes an evidence-backed high-risk approval and labelled impact snapshot', () => {
+    expect(invoiceExceptionSeedData.approvalRequests).toHaveLength(1);
+    expect(invoiceExceptionSeedData.approvalRequests[0]).toMatchObject({ status: 'pending', riskLevel: 'high', appliedRuleIds: ['manager_threshold'] });
+    expect(invoiceExceptionSeedData.impactSnapshots[0]?.sources.automationCoveragePercent).toBe('estimated');
+  });
 });

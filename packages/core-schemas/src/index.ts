@@ -166,21 +166,28 @@ export const testResultSchema = z.object({
 });
 
 export const approvalRequestStatusSchema = z.enum(['pending', 'approved', 'rejected', 'cancelled']);
+export const approvalDecisionSchema = z.enum(['approved', 'rejected', 'request_more_information', 'escalated']);
 export const approvalRequestSchema = z.object({
   id: identifierSchema, projectId: identifierSchema, workflowVersionId: identifierSchema.nullable(),
   status: approvalRequestStatusSchema, reason: z.string().min(1), riskLevel: contradictionSeveritySchema,
+  requestedAction: z.string().min(1), agentRecommendation: z.string().min(1), confidence: z.number().min(0).max(1).nullable(),
+  appliedRuleIds: z.array(z.string().min(1)).default([]), agentBuildId: identifierSchema.nullable(),
   evidenceIds: z.array(identifierSchema).min(1), payload: jsonObjectSchema, createdAt: timestampSchema,
 });
 export const approvalActionSchema = z.object({
-  id: identifierSchema, approvalRequestId: identifierSchema, decision: z.enum(['approved', 'rejected']),
-  comment: z.string().nullable(), actedAt: timestampSchema,
+  id: identifierSchema, approvalRequestId: identifierSchema, decision: approvalDecisionSchema,
+  comment: z.string().nullable(), approver: z.string().min(1), actedAt: timestampSchema,
 });
 
+export const impactMetricSourceSchema = z.enum(['observed', 'estimated']);
 export const impactMetricsSchema = z.object({
   id: identifierSchema, projectId: identifierSchema, workflowVersionId: identifierSchema.nullable(),
   observedCases: z.number().int().nonnegative(), automationCoveragePercent: z.number().min(0).max(100),
   accuracyPercent: z.number().min(0).max(100), estimatedMinutesSaved: z.number().nonnegative(),
-  assumptions: z.array(z.string().min(1)), capturedAt: timestampSchema,
+  manualSteps: z.number().int().nonnegative(), automatedSteps: z.number().int().nonnegative(), aiAssistedSteps: z.number().int().nonnegative(),
+  humanRequiredSteps: z.number().int().nonnegative(), manualHandlingMinutes: z.number().nonnegative(), estimatedAutomatedMinutes: z.number().nonnegative(),
+  reviewRatePercent: z.number().min(0).max(100), rulesDiscovered: z.number().int().nonnegative(), undocumentedExceptions: z.number().int().nonnegative(),
+  sources: z.record(impactMetricSourceSchema), assumptions: z.array(z.string().min(1)), capturedAt: timestampSchema,
 });
 
 export type WorkflowType = z.infer<typeof workflowTypeSchema>;
@@ -205,4 +212,5 @@ export type EvaluationMatchCategory = z.infer<typeof evaluationMatchCategorySche
 export type TestRun = z.infer<typeof testRunSchema>;
 export type TestResult = z.infer<typeof testResultSchema>;
 export type ApprovalRequest = z.infer<typeof approvalRequestSchema>;
+export type ApprovalAction = z.infer<typeof approvalActionSchema>;
 export type ImpactMetrics = z.infer<typeof impactMetricsSchema>;

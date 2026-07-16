@@ -15,6 +15,45 @@
     { "id": "aaaaaaa9-0000-4000-8000-000000000009", "projectId": "11111111-1111-4111-8111-111111111111", "label": "Case 9 - Conditional email approval", "input": { "invoiceReference": "INV-009", "purchaseOrderReference": "PO-009", "invoiceQuantity": 100, "purchaseOrderQuantity": 100, "invoiceUnitPrice": 100, "purchaseOrderUnitPrice": 100, "deliveryConfirmed": true, "invoiceValue": 10000, "duplicateInvoice": false, "emailApproval": "conditional" }, "expectedOutcome": { "decision": "human_review", "reason": "Email approval is conditional" }, "evidenceIds": [], "createdAt": "2026-07-15T09:00:00.000Z" },
     { "id": "aaaaaaa0-0000-4000-8000-000000000010", "projectId": "11111111-1111-4111-8111-111111111111", "label": "Case 10 - SOP and SME conflict", "input": { "invoiceReference": "INV-010", "purchaseOrderReference": "PO-010", "invoiceQuantity": 100, "purchaseOrderQuantity": 100, "invoiceUnitPrice": 100, "purchaseOrderUnitPrice": 100, "deliveryConfirmed": true, "invoiceValue": 425000, "duplicateInvoice": false, "emailApproval": "unconditional" }, "expectedOutcome": { "decision": "policy_clarification", "reason": "SOP and observed threshold conflict" }, "evidenceIds": [], "createdAt": "2026-07-15T09:00:00.000Z" }
   ],
+  "approvalRequests": [
+    {
+      "projectId": "11111111-1111-4111-8111-111111111111",
+      "workflowVersionId": null,
+      "status": "pending",
+      "reason": "Invoice value exceeds the manager approval threshold.",
+      "riskLevel": "high",
+      "requestedAction": "Release the reviewed invoice",
+      "agentRecommendation": "Request manager approval",
+      "confidence": 0.95,
+      "appliedRuleIds": ["manager_threshold"],
+      "agentBuildId": null,
+      "evidenceIds": ["22222222-2222-4222-8222-222222222222"],
+      "payload": { "caseId": "aaaaaaa8-0000-4000-8000-000000000008", "reference": "INV-008", "value": 725000, "threshold": 500000 },
+      "createdAt": "2026-07-15T10:06:00.000Z"
+    }
+  ],
+  "impactSnapshots": [
+    {
+      "projectId": "11111111-1111-4111-8111-111111111111",
+      "workflowVersionId": null,
+      "observedCases": 10,
+      "automationCoveragePercent": 70,
+      "accuracyPercent": 90,
+      "estimatedMinutesSaved": 150,
+      "manualSteps": 9,
+      "automatedSteps": 5,
+      "aiAssistedSteps": 2,
+      "humanRequiredSteps": 2,
+      "manualHandlingMinutes": 18,
+      "estimatedAutomatedMinutes": 3,
+      "reviewRatePercent": 30,
+      "rulesDiscovered": 3,
+      "undocumentedExceptions": 1,
+      "sources": { "observedCases": "observed", "manualSteps": "observed", "automatedSteps": "estimated", "aiAssistedSteps": "estimated", "humanRequiredSteps": "observed", "manualHandlingMinutes": "observed", "estimatedAutomatedMinutes": "estimated", "automationCoveragePercent": "estimated", "reviewRatePercent": "estimated", "rulesDiscovered": "observed", "undocumentedExceptions": "observed", "accuracyPercent": "observed", "estimatedMinutesSaved": "estimated" },
+      "assumptions": ["Manual handling time is based on the observed invoice review path.", "Assisted handling estimate excludes external system latency."],
+      "capturedAt": "2026-07-15T10:10:00.000Z"
+    }
+  ],
   "domainRecords": [
     { "id": "invoice-001", "type": "invoice_record", "schemaVersion": "1.0", "payload": { "reference": "INV-001", "purchaseOrderReference": "PO-001", "vendor": "Aster Supplies", "quantity": 100, "unitPrice": 100, "value": 10000, "duplicate": false } },
     { "id": "invoice-002", "type": "invoice_record", "schemaVersion": "1.0", "payload": { "reference": "INV-002", "purchaseOrderReference": "PO-002", "vendor": "Banyan Works", "quantity": 98, "unitPrice": 100, "value": 425000, "duplicate": false } },
