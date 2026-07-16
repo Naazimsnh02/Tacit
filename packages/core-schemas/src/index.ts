@@ -45,6 +45,31 @@ export const documentEvidenceSchema = z.object({
   createdAt: timestampSchema,
 });
 
+/** The original, tenant-owned binary submitted as workflow evidence. */
+export const evidenceArtifactTypeSchema = z.enum(['sop', 'document', 'spreadsheet', 'image', 'audio', 'video']);
+export const evidenceArtifactStatusSchema = z.enum(['uploading', 'queued', 'processing', 'ready', 'failed', 'deleted']);
+export const evidenceScanStatusSchema = z.enum(['pending', 'clean', 'blocked', 'failed']);
+export const evidenceArtifactSchema = z.object({
+  id: identifierSchema, projectId: identifierSchema, organizationId: identifierSchema,
+  evidenceType: evidenceArtifactTypeSchema, filename: z.string().min(1).max(255), displayName: z.string().min(1).max(255),
+  mediaType: z.string().min(1).max(160), byteSize: z.number().int().positive(), checksumSha256: z.string().regex(/^[a-f0-9]{64}$/),
+  storageKey: z.string().min(1), storageVersion: z.string().nullable(), status: evidenceArtifactStatusSchema,
+  scanStatus: evidenceScanStatusSchema, processingConsentAt: timestampSchema, retentionExpiresAt: timestampSchema.nullable(),
+  failureReason: z.string().min(1).nullable(), createdAt: timestampSchema, updatedAt: timestampSchema,
+});
+export const evidenceExtractionKindSchema = z.enum(['text', 'ocr', 'transcript', 'frame', 'spreadsheet']);
+export const evidenceCitationSchema = z.object({
+  artifactId: identifierSchema, extractionId: identifierSchema, pageStart: z.number().int().positive().nullable(),
+  pageEnd: z.number().int().positive().nullable(), timeStartMs: z.number().int().nonnegative().nullable(),
+  timeEndMs: z.number().int().nonnegative().nullable(),
+});
+export const extractedEvidenceSchema = z.object({
+  id: identifierSchema, artifactId: identifierSchema, kind: evidenceExtractionKindSchema, content: z.string().min(1),
+  pageStart: z.number().int().positive().nullable(), pageEnd: z.number().int().positive().nullable(),
+  timeStartMs: z.number().int().nonnegative().nullable(), timeEndMs: z.number().int().nonnegative().nullable(),
+  confidence: z.number().min(0).max(1), sourceArtifactVersion: z.string().min(1), createdAt: timestampSchema,
+});
+
 export const automationBoundarySchema = z.enum(['deterministic', 'ai_judgment', 'human_approval', 'unsupported']);
 export const contradictionSeveritySchema = z.enum(['low', 'medium', 'high']);
 export const workflowStepSchema = z.object({
@@ -209,6 +234,11 @@ export type Project = z.infer<typeof projectSchema>;
 export type ObservationSession = z.infer<typeof observationSessionSchema>;
 export type WorkflowEvent = z.infer<typeof workflowEventSchema>;
 export type DocumentEvidence = z.infer<typeof documentEvidenceSchema>;
+export type EvidenceArtifact = z.infer<typeof evidenceArtifactSchema>;
+export type EvidenceArtifactType = z.infer<typeof evidenceArtifactTypeSchema>;
+export type EvidenceArtifactStatus = z.infer<typeof evidenceArtifactStatusSchema>;
+export type EvidenceCitation = z.infer<typeof evidenceCitationSchema>;
+export type ExtractedEvidence = z.infer<typeof extractedEvidenceSchema>;
 export type WorkflowStep = z.infer<typeof workflowStepSchema>;
 export type WorkflowReconstruction = z.infer<typeof workflowReconstructionSchema>;
 export type ReconstructedWorkflowStep = z.infer<typeof reconstructedWorkflowStepSchema>;
