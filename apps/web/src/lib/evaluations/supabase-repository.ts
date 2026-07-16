@@ -18,7 +18,7 @@ export class SupabaseEvaluationRepository implements EvaluationRepository {
   }
   async getBuild(input: { projectId: string; buildId?: string }) {
     const filter = input.buildId ? `id=eq.${encodeURIComponent(input.buildId)}&` : '';
-    const rows = await this.request(`agent_builds?${filter}project_id=eq.${encodeURIComponent(input.projectId)}&status=eq.succeeded&select=id,workflow_version_id,projects!inner(workflow_type)&order=created_at.desc&limit=1`) as Row[];
+    const rows = await this.request(`agent_builds?${filter}project_id=eq.${encodeURIComponent(input.projectId)}&status=eq.succeeded&promotion_status=eq.promoted&select=id,workflow_version_id,projects!inner(workflow_type)&order=created_at.desc&limit=1`) as Row[];
     const row = rows[0]; return row ? { id: String(row.id), workflowVersionId: String(row.workflow_version_id), workflowType: String((row.projects as Row).workflow_type) } : null;
   }
   async getTestCases(projectId: string) {

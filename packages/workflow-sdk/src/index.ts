@@ -9,7 +9,6 @@ import {
   type ClarificationAnswerValue,
   type ClarificationQuestionDraft,
   type WorkflowReconstruction,
-  type WorkflowSpecification,
   type EvaluationMatchCategory,
   type ApprovalRequest,
   type ImpactMetrics,
@@ -72,11 +71,6 @@ export interface RuntimeFieldDefinition {
   readonly description: string;
 }
 
-export interface GeneratedRuntimeArtifacts {
-  readonly agentSource: string;
-  readonly testSource: string;
-}
-
 /** Pack-owned interpretation of a domain outcome; core only persists this generic trace. */
 export interface EvaluationAssessment {
   readonly matchCategory: EvaluationMatchCategory;
@@ -128,8 +122,6 @@ export interface WorkflowPack<Input extends z.ZodType, Outcome extends z.ZodType
     readonly testCase: TestCase; readonly actualOutcome: Record<string, unknown> | null; readonly executionError: string | null;
   }) => EvaluationAssessment;
   readonly promptContext: string;
-  /** Pack-owned decision code and tests; the generic compiler only writes them. */
-  readonly createGeneratedRuntimeArtifacts?: (specification: WorkflowSpecification) => GeneratedRuntimeArtifacts;
   /** A deterministic, pack-owned demo result when a model is not configured. */
   readonly reconstructionFallback?: (context: { readonly evidenceIds: readonly string[] }) => WorkflowReconstruction;
   /** Optional pack-owned answer interpretation; core persists the resulting generic workflow version. */

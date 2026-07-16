@@ -102,7 +102,7 @@ class RuntimeService:
         self.timeout_seconds = timeout_seconds
 
     def _build_directory(self, build_id: UUID) -> Path:
-        matches = list(self.generated_root.glob(f"*/{build_id}"))
+        matches = list(self.generated_root.rglob(str(build_id)))
         if len(matches) != 1 or not matches[0].is_dir():
             raise RuntimeError("Generated build artifact was not found.")
         directory = matches[0].resolve()

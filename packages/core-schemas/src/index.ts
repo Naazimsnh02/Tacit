@@ -177,14 +177,18 @@ export const workflowVersionSchema = z.object({
 });
 
 export const agentBuildStatusSchema = z.enum(['queued', 'running', 'succeeded', 'failed', 'stale']);
+export const agentBuildPromotionStatusSchema = z.enum(['pending', 'promoted', 'rejected']);
 export const agentBuildSchema = z.object({
   id: identifierSchema, projectId: identifierSchema, workflowVersionId: identifierSchema,
   status: agentBuildStatusSchema, artifactPath: z.string().nullable(), manifest: jsonObjectSchema.nullable(),
-  failureReason: z.string().nullable(), createdAt: timestampSchema, completedAt: timestampSchema.nullable(),
+  failureReason: z.string().nullable(), promotionStatus: agentBuildPromotionStatusSchema.default('pending'), promotedBy: identifierSchema.nullable().default(null), promotedAt: timestampSchema.nullable().default(null), createdAt: timestampSchema, completedAt: timestampSchema.nullable(),
 });
 export const agentBuildLogSchema = z.object({
   id: identifierSchema, agentBuildId: identifierSchema, stage: z.string().min(1), message: z.string().min(1),
   createdAt: timestampSchema,
+});
+export const agentBuildRepairSchema = z.object({
+  id: identifierSchema, agentBuildId: identifierSchema, kind: z.enum(['repair_proposal', 'clarification']), summary: z.string().min(1), details: jsonObjectSchema, createdAt: timestampSchema,
 });
 
 export const testCaseSchema = z.object({
@@ -263,6 +267,7 @@ export type WorkflowSpecification = z.infer<typeof workflowSpecificationSchema>;
 export type WorkflowConfirmation = z.infer<typeof workflowConfirmationSchema>;
 export type AgentBuild = z.infer<typeof agentBuildSchema>;
 export type AgentBuildLog = z.infer<typeof agentBuildLogSchema>;
+export type AgentBuildRepair = z.infer<typeof agentBuildRepairSchema>;
 export type TestCase = z.infer<typeof testCaseSchema>;
 export type EvaluationMatchCategory = z.infer<typeof evaluationMatchCategorySchema>;
 export type TestRun = z.infer<typeof testRunSchema>;

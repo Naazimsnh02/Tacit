@@ -20,9 +20,10 @@ export class SupabaseAgentBuildRepository implements AgentBuildRepository {
   }
 
   async getWorkflowVersion(id: string, projectId: string) {
-    const rows = await this.request(`workflow_versions?id=eq.${encodeURIComponent(id)}&project_id=eq.${encodeURIComponent(projectId)}&select=id,project_id,version,specification,projects!inner(workflow_type,mode)`) as Row[];
+    const rows = await this.request(`workflow_versions?id=eq.${encodeURIComponent(id)}&project_id=eq.${encodeURIComponent(projectId)}&select=id,project_id,version,specification,projects!inner(workflow_type,mode,organization_id)`) as Row[];
     const row = rows[0];
-    return row ? { id: String(row.id), projectId: String(row.project_id), version: Number(row.version), specification: row.specification, workflowType: String((row.projects as Row).workflow_type), mode: (row.projects as Row).mode === 'demo' ? 'demo' as const : 'production' as const } : null;
+    const project = row?.projects as Row | undefined;
+    return row && project ? { id: String(row.id), projectId: String(row.project_id), organizationId: String(project.organization_id), version: Number(row.version), specification: row.specification, workflowType: String(project.workflow_type), mode: project.mode === 'demo' ? 'demo' as const : 'production' as const } : null;
   }
   async hasWorkflowConfirmation(input: { workflowVersionId: string; projectId: string }) {
     const rows = await this.request(`workflow_confirmations?workflow_version_id=eq.${encodeURIComponent(input.workflowVersionId)}&project_id=eq.${encodeURIComponent(input.projectId)}&select=workflow_version_id&limit=1`) as Row[];
@@ -32,11 +33,13 @@ export class SupabaseAgentBuildRepository implements AgentBuildRepository {
     const rows = await this.request(`test_cases?project_id=eq.${encodeURIComponent(projectId)}&select=id&order=created_at.asc`) as Row[];
     return rows.map((row) => String(row.id));
   }
-  async createBuild(input: { projectId: string; workflowVersionId: string }) {
-    const rows = await this.request('agent_builds', { method: 'POST', headers: { Prefer: 'return=representation' }, body: JSON.stringify([{ project_id: input.projectId, workflow_version_id: input.workflowVersionId, status: 'running' }]) }) as Row[];
+  async createBuild(input: { projectId: string; workflowVersionId: string; requestedBy: string | null }) {
+    const rows = await this.request('agent_builds', { method: 'POST', headers: { Prefer: 'return=representation' }, body: JSON.stringify([{ project_id: input.projectId, workflow_version_id: input.workflowVersionId, requested_by: input.requestedBy, status: 'queued', promotion_status: 'pending' }]) }) as Row[];
     return { id: String(rows[0]?.id) };
   }
+  async markBuildRunning(agentBuildId: string) { await this.request(`agent_builds?id=eq.${encodeURIComponent(agentBuildId)}`, { method: 'PATCH', body: JSON.stringify({ status: 'running' }) }); }
   async saveLog(input: { agentBuildId: string; stage: string; message: string }) { await this.request('agent_build_logs', { method: 'POST', body: JSON.stringify([{ agent_build_id: input.agentBuildId, stage: input.stage, message: input.message }]) }); }
   async completeBuild(input: { agentBuildId: string; artifactPath: string; manifest: Record<string, unknown> }) { await this.request(`agent_builds?id=eq.${encodeURIComponent(input.agentBuildId)}`, { method: 'PATCH', body: JSON.stringify({ status: 'succeeded', artifact_path: input.artifactPath, manifest: input.manifest, completed_at: new Date().toISOString() }) }); }
-  async failBuild(input: { agentBuildId: string; reason: string }) { await this.request(`agent_builds?id=eq.${encodeURIComponent(input.agentBuildId)}`, { method: 'PATCH', body: JSON.stringify({ status: 'failed', failure_reason: input.reason, completed_at: new Date().toISOString() }) }); }
+  async failBuild(input: { agentBuildId: string; reason: string; manifest: Record<string, unknown> }) { await this.request(`agent_builds?id=eq.${encodeURIComponent(input.agentBuildId)}`, { method: 'PATCH', body: JSON.stringify({ status: 'failed', failure_reason: input.reason, manifest: input.manifest, completed_at: new Date().toISOString() }) }); }
+  async createRepairProposal(input: { agentBuildId: string; kind: 'repair_proposal' | 'clarification'; summary: string; details: Record<string, unknown> }) { await this.request('agent_build_repairs', { method: 'POST', body: JSON.stringify([{ agent_build_id: input.agentBuildId, kind: input.kind, summary: input.summary, details: input.details }]) }); }
 }

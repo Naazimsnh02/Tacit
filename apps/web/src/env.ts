@@ -5,6 +5,7 @@ const serverEnvironmentSchema = z.object({
   OPENAI_REASONING_MODEL: z.string().min(1),
   OPENAI_DEFAULT_MODEL: z.string().min(1),
   OPENAI_FAST_MODEL: z.string().min(1),
+  OPENAI_CODEX_MODEL: z.string().min(1),
   NEXT_PUBLIC_SUPABASE_URL: z.string().url(),
   NEXT_PUBLIC_SUPABASE_ANON_KEY: z.string().min(1),
   SUPABASE_SERVICE_ROLE_KEY: z.string().min(1),

@@ -2,5 +2,6 @@
   "name": "@tacit/prompts",
   "private": true,
   "version": "0.0.0",
+  "dependencies": { "@tacit/core-schemas": "0.0.0" },
   "exports": { ".": "./src/index.ts" }
 }
