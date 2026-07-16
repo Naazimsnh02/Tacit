@@ -509,6 +509,9 @@ Windows PowerShell:
 Copy-Item .env.example .env.local
 ```
 
+For the web application, keep the configured file at `apps/web/.env.local`.
+Copy `apps/web/.env.local.example` to that location before starting the app.
+
 Configure:
 
 ```bash
@@ -799,7 +802,9 @@ Milestone 3 - 019f65bd-a0c0-7e30-af90-f358681c505a,
 Milestone 4 - 019f65d6-5790-73e1-8237-a725a98bb0f7,
 Milestone 5 - 019f6611-6752-7de2-8fe7-7add76cb2cee,
 Milestone 6 - 019f6626-7c7e-7c83-a243-43eb24186587,
-Milestone 7 - 019f6644-00a9-7ca2-909b-6ae90b2d1bb1
+Milestone 7 - 019f6644-00a9-7ca2-909b-6ae90b2d1bb1,
+Milestone 8 - 019f6688-b0b8-7d41-841c-6c0200573854,
+Milestone 9 - 019f66a7-67b3-79d3-a8e7-517f4de8ab9c
 ```
 
 Use the relevant `/feedback` Codex Session ID in the Devpost submission form.

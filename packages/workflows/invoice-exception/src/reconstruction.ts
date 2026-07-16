@@ -35,10 +35,16 @@ export function resolveInvoiceClarificationAnswer(input: {
   const answer = Array.isArray(input.answer) ? input.answer.join(', ') : String(input.answer);
   const rules = input.reconstruction.rules.map((rule) => {
     if (rule.id !== input.question.relatedRuleId) return rule;
-    if (input.question.id === 'manager_threshold_authority') {
+    if (rule.id === 'manager_threshold') {
       return { ...rule, condition: `Invoice value exceeds ${answer}.`, verificationStatus: 'confirmed' as const, confidence: 1 };
     }
     return { ...rule, verificationStatus: 'confirmed' as const, confidence: 1 };
   });
-  return { ...input.reconstruction, rules };
+  const resolvedContradictions = input.reconstruction.contradictions.filter(
+    (contradiction) => input.question.question !== `How should the agent resolve this conflict: ${contradiction.description}?`,
+  );
+  const resolvedUnknowns = input.reconstruction.unknowns.filter(
+    (unknown) => input.question.question !== unknown,
+  );
+  return { ...input.reconstruction, rules, contradictions: resolvedContradictions, unknowns: resolvedUnknowns };
 }

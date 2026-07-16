@@ -6,6 +6,8 @@ dist/
 playwright-report/
 test-results/
 .env
+.env.local
+generated/
 .venv/
 __pycache__/
 .pytest_cache/
