@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createProjectRequestSchema, mapProject, slugifyOrganizationName, updateProjectRequestSchema } from './api';
+import { createProjectRequestSchema, mapProject, pilotProjectLimit, slugifyOrganizationName, updateProjectRequestSchema } from './api';
 
 describe('production project API contracts', () => {
   it('accepts only generic project creation fields', () => {
@@ -17,5 +17,10 @@ describe('production project API contracts', () => {
 
   it('creates URL-safe organization slugs without retaining the original casing', () => {
     expect(slugifyOrganizationName('Northwind & Co.')).toMatch(/^northwind-co-[a-f0-9]{8}$/);
+  });
+  it('keeps the pilot active-project limit bounded even with an invalid environment value', () => {
+    expect(pilotProjectLimit('8')).toBe(8);
+    expect(pilotProjectLimit('0')).toBe(5);
+    expect(pilotProjectLimit('unbounded')).toBe(5);
   });
 });

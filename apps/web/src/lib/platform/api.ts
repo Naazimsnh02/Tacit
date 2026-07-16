@@ -12,6 +12,13 @@ export const updateProjectRequestSchema = z.object({ name: z.string().trim().min
 
 export interface AuthenticatedActor { readonly id: string; readonly email: string | null; readonly token: string; }
 export interface OrganizationRecord { readonly id: string; readonly name: string; readonly slug: string; readonly mode: ProductMode; readonly role: OrganizationRole; }
+export interface ProjectRequestAccess {
+  readonly projectId: string;
+  readonly organizationId: string;
+  readonly mode: ProductMode;
+  readonly actor: AuthenticatedActor | null;
+  readonly role: OrganizationRole | null;
+}
 
 export function slugifyOrganizationName(name: string): string {
   const base = name.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 48) || 'organization';
@@ -74,6 +81,29 @@ export async function organizationRoleFor(actorId: string, organizationId: strin
 }
 
 export function canWrite(role: OrganizationRole | null): boolean { return role === 'owner' || role === 'admin' || role === 'member'; }
+
+/**
+ * Service-role repositories bypass database RLS. Production API routes must call
+ * this before reading or mutating a tenant-owned record through those repositories.
+ * Demo records remain reachable only through their explicit demo path.
+ */
+export async function authorizeProjectRequest(request: Request, projectId: string, write = false): Promise<ProjectRequestAccess> {
+  const rows = await serviceRequest<Array<{ id: string; organization_id: string; mode: ProductMode }>>(`projects?id=eq.${encodeURIComponent(projectId)}&select=id,organization_id,mode&limit=1`);
+  const project = rows[0];
+  if (!project) throw new ApiError(404, 'Project not found.');
+  if (project.mode === 'demo') return { projectId: project.id, organizationId: project.organization_id, mode: 'demo', actor: null, role: null };
+  const actor = await authenticateRequest(request);
+  const role = await organizationRoleFor(actor.id, project.organization_id);
+  if (!role) throw new ApiError(403, 'You do not have access to this project.');
+  if (write && !canWrite(role)) throw new ApiError(403, 'You do not have permission to change this project.');
+  return { projectId: project.id, organizationId: project.organization_id, mode: 'production', actor, role };
+}
+
+export function pilotProjectLimit(rawValue = process.env.PILOT_MAX_ACTIVE_PROJECTS_PER_ORGANIZATION): number {
+  if (!rawValue) return 5;
+  const parsed = Number(rawValue);
+  return Number.isInteger(parsed) && parsed > 0 && parsed <= 100 ? parsed : 5;
+}
 
 const windows = new Map<string, { count: number; resetAt: number }>();
 export function enforceRateLimit(actorId: string, endpoint: string, limit = 30, windowMs = 60_000): void {

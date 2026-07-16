@@ -675,6 +675,10 @@ The hackathon version:
 - Uses a constrained generated-code format
 - Is a prototype, not a production deployment
 
+## Supervised pilot operations
+
+The Invoice Exception Review pilot is supervised: it produces recommendations and evidence trails, then requires a recorded human approval before any external action. See [pilot operations](docs/pilot-operations.md) for onboarding, usage limits, diagnostics, monitoring, incident response, backups, privacy, and deletion procedures.
+
 ---
 
 ## Roadmap

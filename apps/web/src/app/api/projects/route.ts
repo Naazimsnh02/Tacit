@@ -1,5 +1,5 @@
 import { createWorkflowRegistry } from '../../../lib/workflow-packs';
-import { authenticateRequest, canWrite, createProjectRequestSchema, enforceRateLimit, errorResponse, mapProject, organizationRoleFor, serviceRequest } from '../../../lib/platform/api';
+import { ApiError, authenticateRequest, canWrite, createProjectRequestSchema, enforceRateLimit, errorResponse, mapProject, organizationRoleFor, pilotProjectLimit, serviceRequest } from '../../../lib/platform/api';
 
 export async function GET(request: Request) {
   try {
@@ -22,6 +22,8 @@ export async function POST(request: Request) {
     const input = createProjectRequestSchema.parse(await request.json());
     const role = await organizationRoleFor(actor.id, input.organizationId);
     if (!canWrite(role)) return Response.json({ error: 'You do not have permission to create projects in this organization.' }, { status: 403 });
+    const activeProjects = await serviceRequest<Array<{ id: string }>>(`projects?organization_id=eq.${encodeURIComponent(input.organizationId)}&mode=eq.production&status=neq.archived&select=id`);
+    if (activeProjects.length >= pilotProjectLimit()) throw new ApiError(429, 'This pilot organization has reached its active project limit. Archive a project or contact support.');
     createWorkflowRegistry().get(input.workflowType);
     const [row] = await serviceRequest<Record<string, unknown>[]>('projects', { method: 'POST', headers: { Prefer: 'return=representation' }, body: JSON.stringify([{ organization_id: input.organizationId, mode: 'production', created_by: actor.id, name: input.name, workflow_type: input.workflowType, status: 'draft' }]) });
     const project = mapProject(row); const responseBody = { project };

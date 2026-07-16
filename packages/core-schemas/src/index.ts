@@ -226,7 +226,7 @@ export const approvalRequestSchema = z.object({
 });
 export const approvalActionSchema = z.object({
   id: identifierSchema, approvalRequestId: identifierSchema, decision: approvalDecisionSchema,
-  comment: z.string().nullable(), approver: z.string().min(1), actedAt: timestampSchema,
+  comment: z.string().nullable(), approver: z.string().min(1), actorId: identifierSchema.nullable(), actedAt: timestampSchema,
 });
 
 export const impactMetricSourceSchema = z.enum(['observed', 'estimated']);

@@ -18,7 +18,7 @@ class Repository implements ApprovalRepository {
 }
 
 describe('approval decisions', () => {
-  it('persists a demo approver action and resolves approve/reject requests', async () => {
+  it('persists a supplied approver action and resolves approve/reject requests', async () => {
     const repository = new Repository();
     await recordApprovalDecision(repository, request.id, { decision: 'approved', comment: 'Evidence reviewed.', approver: 'Manager' });
     expect(repository.current.status).toBe('approved');
@@ -29,5 +29,10 @@ describe('approval decisions', () => {
     await recordApprovalDecision(repository, request.id, { decision: 'request_more_information' });
     expect(repository.current.status).toBe('pending');
     expect(repository.actions[0]?.approver).toBe('Demo approver');
+  });
+  it('uses the authenticated actor rather than a client-provided approver label', async () => {
+    const repository = new Repository();
+    await recordApprovalDecision(repository, request.id, { decision: 'approved', approver: 'Untrusted label' }, { id: '55555555-5555-4555-8555-555555555555', displayName: 'pilot@example.com' });
+    expect(repository.actions[0]).toMatchObject({ approver: 'pilot@example.com', actorId: '55555555-5555-4555-8555-555555555555' });
   });
 });
