@@ -1,0 +1,8 @@
+FROM python:3.11-slim
+
+RUN pip install --no-cache-dir "pydantic>=2.7,<3" "pytest>=8.3,<9" \
+  && useradd --system --uid 65532 --create-home sandbox
+
+USER 65532:65532
+WORKDIR /workspace
+CMD ["python", "--version"]

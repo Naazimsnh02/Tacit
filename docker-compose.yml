@@ -24,8 +24,10 @@ services:
       OPENAI_API_KEY: ${OPENAI_API_KEY}
       EVIDENCE_TRANSCRIPTION_MODEL: ${EVIDENCE_TRANSCRIPTION_MODEL}
       CLAMAV_HOST: clamav
+      AGENT_SANDBOX_IMAGE: ${AGENT_SANDBOX_IMAGE:-tacit-agent-sandbox:latest}
     volumes:
       - ./generated:/generated:ro
+      - /var/run/docker.sock:/var/run/docker.sock
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
       interval: 10s

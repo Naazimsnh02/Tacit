@@ -9,7 +9,7 @@ interface RuntimeReport {
 function text(value: unknown): string { return typeof value === 'string' ? value : ''; }
 function numberOrNull(value: unknown): number | null { return typeof value === 'number' && Number.isFinite(value) ? value : null; }
 
-/** Phase 4 validation runner. Phase 5 replaces this host runtime with isolated execution. */
+/** Requests static validation and generated tests from the isolated runtime worker. */
 export class RuntimeAgentBuildRunner implements AgentBuildRunner {
   constructor(private readonly baseUrl = process.env.AGENT_RUNTIME_URL) {}
 
