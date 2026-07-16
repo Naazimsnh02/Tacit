@@ -23,9 +23,9 @@ export function DemoControls({ stage, onReset, onStart }: { readonly stage: Demo
     window.location.assign('/');
   }
 
-  return <aside aria-label="Demo controls" style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
-    {!started ? <button type="button" onClick={() => { save({ started: true, stage }); onStart?.(); }}>Start guided demo</button> : <span aria-live="polite">Guided demo: {demoStageLabels[currentStage]}</span>}
-    <button type="button" onClick={() => save({ started: true, stage: nextDemoStage(currentStage) })}>Skip to next stage</button>
-    <button type="button" onClick={reset}>Reset demo</button>
+  return <aside aria-label="Demo controls" className="header-actions">
+    {!started ? <button className="btn btn-primary" type="button" onClick={() => { save({ started: true, stage }); onStart?.(); }}>Start guided demo</button> : <span className="status status-info" aria-live="polite">Guided demo: {demoStageLabels[currentStage]}</span>}
+    <button className="btn btn-secondary" type="button" onClick={() => save({ started: true, stage: nextDemoStage(currentStage) })}>Skip to next stage</button>
+    <button className="btn btn-ghost" type="button" onClick={reset}>Reset demo</button>
   </aside>;
 }

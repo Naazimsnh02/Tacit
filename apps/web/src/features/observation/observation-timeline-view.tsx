@@ -31,15 +31,15 @@ export function ObservationTimelineView({ events, actions, evidence, narration }
   const selectedEvent = selected?.events.at(-1) ?? null;
   const selectedEvidence = selectedEvent ? evidence.filter((item) => selectedEvent.evidenceIds.includes(item.id)) : [];
 
-  return <section style={{ maxWidth: 1500, margin: '16px auto 0', display: 'grid', gridTemplateColumns: selectedEvent ? 'minmax(0, 1fr) minmax(300px, .55fr)' : '1fr', gap: 16 }}>
+  return <section className="split" style={{ marginTop: 16, gridTemplateColumns: selectedEvent ? undefined : '1fr' }}>
     <Panel title="Observation timeline">
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center', marginBottom: 12 }}>
-        <button onClick={() => setView('semantic')} aria-pressed={view === 'semantic'}>Semantic steps</button>
-        <button onClick={() => setView('raw')} aria-pressed={view === 'raw'}>Raw events</button>
-        <label style={{ marginLeft: 8 }}>Source <select value={source} onChange={(event) => setSource(event.target.value as typeof source)}><option value="all">All sources</option><option value="user">User</option><option value="system">System</option><option value="import">Import</option></select></label>
+      <div className="tabs">
+        <button className="tab" onClick={() => setView('semantic')} aria-pressed={view === 'semantic'}>Semantic steps</button>
+        <button className="tab" onClick={() => setView('raw')} aria-pressed={view === 'raw'}>Raw events</button>
+        <label className="field-label" style={{ margin: '5px 0 0 auto' }}>Source <select className="select" value={source} onChange={(event) => setSource(event.target.value as typeof source)}><option value="all">All sources</option><option value="user">User</option><option value="system">System</option><option value="import">Import</option></select></label>
       </div>
-      {items.length === 0 ? <p style={{ color: '#59657a', margin: 0 }}>Recorded actions will appear here as the observation progresses.</p> : <ol style={{ listStyle: 'none', padding: 0, margin: 0 }}>
-        {items.map((item) => <li key={item.id} style={{ borderTop: '1px solid #edf0f5' }}><button onClick={() => setSelected(item)} style={{ width: '100%', border: 0, background: 'transparent', cursor: 'pointer', padding: '12px 0', textAlign: 'left', color: '#172033' }}><strong>{displayTime(item.occurredAt)}</strong> <span style={{ color: '#59657a' }}>— {view === 'semantic' ? item.semanticStep : item.action}</span><br /><small>{item.source} · {item.events.length} event{item.events.length === 1 ? '' : 's'}</small></button></li>)}
+      {items.length === 0 ? <p className="empty">Recorded actions will appear here as the observation progresses.</p> : <ol style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+        {items.map((item) => <li key={item.id}><button className="timeline-item" onClick={() => setSelected(item)}><strong>{displayTime(item.occurredAt)}</strong> <span className="muted">— {view === 'semantic' ? item.semanticStep : item.action}</span><br /><small>{item.source} · {item.events.length} event{item.events.length === 1 ? '' : 's'}</small></button></li>)}
       </ol>}
     </Panel>
     {selectedEvent && <Panel title="Evidence detail">
@@ -49,11 +49,11 @@ export function ObservationTimelineView({ events, actions, evidence, narration }
       <p><strong>Evidence:</strong> {selectedEvidence.length ? selectedEvidence.map((item) => item.title).join(', ') : 'None linked'}</p>
       <p><strong>Transcript:</strong> {payloadText(selectedEvent.payload.narration) ?? narration ?? 'No narration recorded'}</p>
       <p><strong>Before / after:</strong> {payloadText(selectedEvent.payload.before) ?? 'Not recorded'} / {payloadText(selectedEvent.payload.after) ?? 'Not recorded'}</p>
-      <details><summary>Raw event JSON</summary><pre style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere', fontSize: 12 }}>{JSON.stringify(selectedEvent, null, 2)}</pre></details>
+      <details><summary>Raw event JSON</summary><pre className="json">{JSON.stringify(selectedEvent, null, 2)}</pre></details>
     </Panel>}
   </section>;
 }
 
 function Panel({ title, children }: { readonly title: string; readonly children: React.ReactNode }) {
-  return <section style={{ background: 'white', border: '1px solid #dde3ef', borderRadius: 12, padding: 18, boxShadow: '0 1px 3px #17203312' }}><h2 style={{ fontSize: 18, marginTop: 0 }}>{title}</h2>{children}</section>;
+  return <section className="card"><h2>{title}</h2>{children}</section>;
 }

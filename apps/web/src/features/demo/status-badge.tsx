@@ -7,5 +7,6 @@ const labels: Readonly<Record<ProductStatus, string>> = {
 };
 
 export function StatusBadge({ status }: { readonly status: ProductStatus }) {
-  return <span aria-label={`Status: ${labels[status]}`} style={{ display: 'inline-block', borderRadius: 999, padding: '4px 9px', background: '#e8eefc', color: '#1d3f91', fontSize: 13, fontWeight: 700 }}>{labels[status]}</span>;
+  const tone = status === 'verified' ? 'success' : status === 'tests_failed' ? 'danger' : status === 'approval_required' || status === 'needs_clarification' ? 'warning' : 'info';
+  return <span aria-label={`Status: ${labels[status]}`} className={`status status-${tone}`}>{labels[status]}</span>;
 }

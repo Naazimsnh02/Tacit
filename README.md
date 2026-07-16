@@ -804,7 +804,9 @@ Milestone 5 - 019f6611-6752-7de2-8fe7-7add76cb2cee,
 Milestone 6 - 019f6626-7c7e-7c83-a243-43eb24186587,
 Milestone 7 - 019f6644-00a9-7ca2-909b-6ae90b2d1bb1,
 Milestone 8 - 019f6688-b0b8-7d41-841c-6c0200573854,
-Milestone 9 - 019f66a7-67b3-79d3-a8e7-517f4de8ab9c
+Milestone 9 - 019f66a7-67b3-79d3-a8e7-517f4de8ab9c,
+Milestone 10 - 019f6868-2613-7870-91d4-7a43892ee49e,
+Milestone 11 - 019f6872-6d2b-73d1-84f0-52a3e870aa1f
 ```
 
 Use the relevant `/feedback` Codex Session ID in the Devpost submission form.
