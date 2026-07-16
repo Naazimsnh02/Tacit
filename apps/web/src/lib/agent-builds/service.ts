@@ -8,7 +8,8 @@ export const buildStages = [
 ] as const;
 
 export interface AgentBuildRepository {
-  getWorkflowVersion(id: string, projectId: string): Promise<{ id: string; projectId: string; version: number; workflowType: string; specification: unknown } | null>;
+  getWorkflowVersion(id: string, projectId: string): Promise<{ id: string; projectId: string; version: number; workflowType: string; mode: 'production' | 'demo'; specification: unknown } | null>;
+  hasWorkflowConfirmation(input: { workflowVersionId: string; projectId: string }): Promise<boolean>;
   getTestCaseIds(projectId: string): Promise<readonly string[]>;
   createBuild(input: { projectId: string; workflowVersionId: string }): Promise<{ id: string }>;
   saveLog(input: { agentBuildId: string; stage: string; message: string }): Promise<void>;
@@ -33,6 +34,9 @@ export async function compileAgent(input: {
   if (!reconstruction.success) throw new AgentBuildInputError('The workflow version does not contain a valid confirmed workflow.');
   if (reconstruction.data.rules.some((rule) => rule.verificationStatus !== 'confirmed')) {
     throw new AgentBuildInputError('Resolve and confirm every workflow rule before building an agent.');
+  }
+  if (version.mode === 'production' && !await input.repository.hasWorkflowConfirmation({ workflowVersionId: version.id, projectId: version.projectId })) {
+    throw new AgentBuildInputError('An SME must confirm rules, contradictions, automation boundaries, and approval policies before building an agent.');
   }
 
   const build = await input.repository.createBuild({ projectId: input.projectId, workflowVersionId: version.id });

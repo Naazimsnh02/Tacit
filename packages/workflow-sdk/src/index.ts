@@ -56,6 +56,9 @@ export interface WorkspaceDefinition {
   readonly outcomes: readonly { id: string; label: string }[];
 }
 
+/** Source-artifact classes a pack can interpret during production observation. */
+export type EvidenceArtifactType = 'sop' | 'document' | 'spreadsheet' | 'image' | 'audio' | 'video';
+
 export interface WorkspacePanelData {
   readonly panelId: string;
   readonly values: Readonly<Record<string, string | number | boolean | null>>;
@@ -117,6 +120,7 @@ export interface WorkflowPack<Input extends z.ZodType, Outcome extends z.ZodType
   readonly workspaceDefinition: WorkspaceDefinition;
   readonly eventCatalog: readonly string[];
   readonly evidenceTypes: readonly string[];
+  readonly supportedEvidenceArtifactTypes?: readonly EvidenceArtifactType[];
   readonly supportedActions: readonly WorkspaceActionDefinition[];
   readonly approvalPolicy: unknown;
   readonly evaluationDefinition: unknown;

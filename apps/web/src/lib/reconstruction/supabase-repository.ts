@@ -1,4 +1,4 @@
-import type { DocumentEvidence, ObservationSession, WorkflowEvent, WorkflowReconstruction } from '@tacit/core-schemas';
+import type { ExtractedEvidence, ObservationSession, WorkflowEvent, WorkflowReconstruction } from '@tacit/core-schemas';
 import type { ReconstructionRepository } from './service';
 
 interface SupabaseRow { [key: string]: unknown; }
@@ -16,8 +16,8 @@ function mapSession(row: SupabaseRow): ObservationSession {
 function mapEvent(row: SupabaseRow): WorkflowEvent {
   return { id: String(row.id), observationSessionId: String(row.observation_session_id), source: row.source as WorkflowEvent['source'], action: String(row.action), occurredAt: String(row.occurred_at), payload: (row.payload ?? {}) as Record<string, unknown>, evidenceIds: Array.isArray(row.evidence_ids) ? row.evidence_ids.map(String) : [] };
 }
-function mapEvidence(row: SupabaseRow): DocumentEvidence {
-  return { id: String(row.id), projectId: String(row.project_id), observationSessionId: row.observation_session_id === null ? null : String(row.observation_session_id), evidenceType: String(row.evidence_type), title: String(row.title), mediaType: String(row.media_type), storageKey: String(row.storage_key), schemaVersion: String(row.schema_version), metadata: (row.metadata ?? {}) as Record<string, unknown>, createdAt: String(row.created_at) };
+function mapEvidence(row: SupabaseRow): ExtractedEvidence {
+  return { id: String(row.id), artifactId: String(row.artifact_id), kind: row.kind as ExtractedEvidence['kind'], content: String(row.content), pageStart: row.page_start === null ? null : Number(row.page_start), pageEnd: row.page_end === null ? null : Number(row.page_end), timeStartMs: row.time_start_ms === null ? null : Number(row.time_start_ms), timeEndMs: row.time_end_ms === null ? null : Number(row.time_end_ms), confidence: Number(row.confidence), sourceArtifactVersion: String(row.source_artifact_version), createdAt: String(row.created_at) };
 }
 
 export class SupabaseReconstructionRepository implements ReconstructionRepository {
@@ -30,10 +30,10 @@ export class SupabaseReconstructionRepository implements ReconstructionRepositor
     return text ? JSON.parse(text) : null;
   }
 
-  async getProject(projectId: string): Promise<{ id: string; workflowType: string } | null> {
-    const rows = await this.request(`projects?id=eq.${encodeURIComponent(projectId)}&select=id,workflow_type`) as SupabaseRow[];
+  async getProject(projectId: string): Promise<{ id: string; workflowType: string; mode: 'production' | 'demo' } | null> {
+    const rows = await this.request(`projects?id=eq.${encodeURIComponent(projectId)}&select=id,workflow_type,mode`) as SupabaseRow[];
     const row = rows[0];
-    return row ? { id: String(row.id), workflowType: String(row.workflow_type) } : null;
+    return row ? { id: String(row.id), workflowType: String(row.workflow_type), mode: row.mode === 'demo' ? 'demo' : 'production' } : null;
   }
   async getSession(sessionId: string, projectId: string): Promise<ObservationSession | null> {
     const rows = await this.request(`observation_sessions?id=eq.${encodeURIComponent(sessionId)}&project_id=eq.${encodeURIComponent(projectId)}&select=*`) as SupabaseRow[];
@@ -43,9 +43,9 @@ export class SupabaseReconstructionRepository implements ReconstructionRepositor
     const rows = await this.request(`workflow_events?observation_session_id=eq.${encodeURIComponent(sessionId)}&select=*&order=occurred_at.asc`) as SupabaseRow[];
     return rows.map(mapEvent);
   }
-  async getEvidence(projectId: string, sessionId: string): Promise<readonly DocumentEvidence[]> {
-    const rows = await this.request(`documents?project_id=eq.${encodeURIComponent(projectId)}&select=*`) as SupabaseRow[];
-    return rows.filter((row) => row.observation_session_id === null || row.observation_session_id === sessionId).map(mapEvidence);
+  async getEvidence(projectId: string): Promise<readonly ExtractedEvidence[]> {
+    const rows = await this.request(`evidence_extractions?select=*,evidence_artifacts!inner(project_id,status,scan_status)&evidence_artifacts.project_id=eq.${encodeURIComponent(projectId)}&evidence_artifacts.status=eq.ready&evidence_artifacts.scan_status=eq.clean&order=created_at.asc`) as SupabaseRow[];
+    return rows.map(mapEvidence);
   }
   async nextWorkflowVersion(projectId: string): Promise<number> {
     const rows = await this.request(`workflow_versions?project_id=eq.${encodeURIComponent(projectId)}&select=version&order=version.desc&limit=1`) as SupabaseRow[];

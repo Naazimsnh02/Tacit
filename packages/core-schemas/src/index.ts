@@ -159,6 +159,17 @@ export const workflowSpecificationSchema = z.object({
   testCaseIds: z.array(identifierSchema),
 });
 export const workflowVersionStatusSchema = z.enum(['draft', 'active', 'superseded']);
+/** Immutable SME attestation required before a production workflow may be compiled. */
+export const workflowConfirmationSchema = z.object({
+  workflowVersionId: identifierSchema,
+  projectId: identifierSchema,
+  confirmedBy: identifierSchema,
+  rulesConfirmed: z.literal(true),
+  contradictionsReviewed: z.literal(true),
+  automationBoundariesConfirmed: z.literal(true),
+  approvalPoliciesConfirmed: z.literal(true),
+  createdAt: timestampSchema,
+});
 export const workflowVersionSchema = z.object({
   id: identifierSchema, projectId: identifierSchema, version: z.number().int().positive(),
   status: workflowVersionStatusSchema, specification: z.unknown().nullable(),
@@ -249,6 +260,7 @@ export type ClarificationQuestion = z.infer<typeof clarificationQuestionSchema>;
 export type ClarificationQuestionDraft = z.infer<typeof clarificationQuestionDraftSchema>;
 export type ClarificationAnswerValue = z.infer<typeof clarificationAnswerValueSchema>;
 export type WorkflowSpecification = z.infer<typeof workflowSpecificationSchema>;
+export type WorkflowConfirmation = z.infer<typeof workflowConfirmationSchema>;
 export type AgentBuild = z.infer<typeof agentBuildSchema>;
 export type AgentBuildLog = z.infer<typeof agentBuildLogSchema>;
 export type TestCase = z.infer<typeof testCaseSchema>;

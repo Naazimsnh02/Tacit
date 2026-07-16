@@ -11,8 +11,9 @@ class Repository implements AgentBuildRepository {
   logs: { stage: string; message: string }[] = [];
   completed: { artifactPath: string; manifest: Record<string, unknown> } | null = null;
   failed: string | null = null;
-  constructor(private readonly reconstruction = createInvoiceReconstructionFallback({ evidenceIds: [evidenceId] })) {}
-  async getWorkflowVersion() { return { id: workflowVersionId, projectId, version: 2, workflowType: 'invoice_exception', specification: this.reconstruction }; }
+  constructor(private readonly reconstruction = createInvoiceReconstructionFallback({ evidenceIds: [evidenceId] }), private readonly mode: 'production' | 'demo' = 'demo', private readonly confirmed = false) {}
+  async getWorkflowVersion() { return { id: workflowVersionId, projectId, version: 2, workflowType: 'invoice_exception', mode: this.mode, specification: this.reconstruction }; }
+  async hasWorkflowConfirmation() { return this.confirmed; }
   async getTestCaseIds() { return ['44444444-4444-4444-8444-444444444444']; }
   async createBuild() { return { id: '55555555-5555-4555-8555-555555555555' }; }
   async saveLog(input: { stage: string; message: string }) { this.logs.push(input); }
@@ -49,5 +50,11 @@ describe('agent compilation', () => {
     await expect(compileAgent({ projectId, workflowVersionId, registry: createWorkflowRegistry(), repository, writer })).rejects.toBeInstanceOf(AgentBuildInputError);
     expect(writer.path).toBe('');
     expect(repository.logs).toEqual([]);
+  });
+
+  it('requires an immutable SME confirmation for a production workflow', async () => {
+    const confirmed = createInvoiceReconstructionFallback({ evidenceIds: [evidenceId] });
+    const repository = new Repository({ ...confirmed, rules: confirmed.rules.map((rule) => ({ ...rule, verificationStatus: 'confirmed' as const })) }, 'production');
+    await expect(compileAgent({ projectId, workflowVersionId, registry: createWorkflowRegistry(), repository, writer: new Writer() })).rejects.toBeInstanceOf(AgentBuildInputError);
   });
 });

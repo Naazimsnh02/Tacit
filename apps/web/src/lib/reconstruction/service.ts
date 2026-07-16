@@ -1,8 +1,8 @@
 import {
-  documentEvidenceSchema,
+  extractedEvidenceSchema,
   workflowEventSchema,
   workflowReconstructionSchema,
-  type DocumentEvidence,
+  type ExtractedEvidence,
   type ObservationSession,
   type WorkflowEvent,
   type WorkflowReconstruction,
@@ -15,10 +15,10 @@ export interface ReconstructionModel {
 }
 
 export interface ReconstructionRepository {
-  getProject(projectId: string): Promise<{ id: string; workflowType: string } | null>;
+  getProject(projectId: string): Promise<{ id: string; workflowType: string; mode: 'production' | 'demo' } | null>;
   getSession(sessionId: string, projectId: string): Promise<ObservationSession | null>;
   getEvents(sessionId: string): Promise<readonly WorkflowEvent[]>;
-  getEvidence(projectId: string, sessionId: string): Promise<readonly DocumentEvidence[]>;
+  getEvidence(projectId: string): Promise<readonly ExtractedEvidence[]>;
   nextWorkflowVersion(projectId: string): Promise<number>;
   saveWorkflowVersion(value: {
     projectId: string; version: number; specification: WorkflowReconstruction;
@@ -46,16 +46,13 @@ export async function reconstructWorkflow(input: {
   if (session.status !== 'completed') throw new ReconstructionInputError('Complete the observation session before reconstructing a workflow.');
 
   const [events, evidence] = await Promise.all([
-    input.repository.getEvents(session.id), input.repository.getEvidence(project.id, session.id),
+    input.repository.getEvents(session.id), input.repository.getEvidence(project.id),
   ]);
   const parsedEvents = events.map((event) => workflowEventSchema.parse(event));
-  const parsedEvidence = evidence.map((item) => documentEvidenceSchema.parse(item));
+  const parsedEvidence = evidence.map((item) => extractedEvidenceSchema.parse(item));
   if (!parsedEvents.length) throw new ReconstructionInputError('Record at least one workflow event before reconstructing.');
   if (!parsedEvidence.length) throw new ReconstructionInputError('Attach at least one evidence record before reconstructing.');
-  const unsupportedEvidence = parsedEvidence.find((item) => !workflowPack.evidenceTypes.includes(item.evidenceType));
-  if (unsupportedEvidence) throw new ReconstructionInputError(`Unsupported evidence type: ${unsupportedEvidence.evidenceType}.`);
-
-  const evidenceIds = [...new Set([...parsedEvidence.map((item) => item.id), ...parsedEvents.flatMap((event) => event.evidenceIds)])];
+  const evidenceIds = new Set(parsedEvidence.map((item) => item.id));
   const prompt = createWorkflowReconstructionPrompt({
     promptContext: workflowPack.promptContext, session, events: parsedEvents, evidence: parsedEvidence,
     finalDecision: input.finalDecision,
@@ -66,7 +63,7 @@ export async function reconstructWorkflow(input: {
     let lastError: unknown;
     for (let attempt = 0; attempt < 2; attempt += 1) {
       try {
-        reconstruction = workflowReconstructionSchema.parse(await input.model.reconstruct(prompt));
+        reconstruction = validateEvidenceCitations(workflowReconstructionSchema.parse(await input.model.reconstruct(prompt)), evidenceIds);
         source = 'model';
         return persist({ reconstruction, source, projectId: project.id, repository: input.repository });
       } catch (error) {
@@ -75,10 +72,23 @@ export async function reconstructWorkflow(input: {
     }
     throw new ReconstructionOutputError(`The workflow model returned an invalid reconstruction after one retry. ${lastError instanceof Error ? lastError.message : ''}`.trim());
   }
-  if (!workflowPack.reconstructionFallback) throw new ReconstructionOutputError('Workflow reconstruction is unavailable until a model is configured.');
-  reconstruction = workflowReconstructionSchema.parse(workflowPack.reconstructionFallback({ evidenceIds }));
+  if (project.mode !== 'demo' || !workflowPack.reconstructionFallback) {
+    throw new ReconstructionOutputError('Workflow reconstruction is unavailable until the configured model is available.');
+  }
+  reconstruction = validateEvidenceCitations(workflowReconstructionSchema.parse(workflowPack.reconstructionFallback({ evidenceIds: [...evidenceIds] })), evidenceIds);
   source = 'seeded_fallback';
   return persist({ reconstruction, source, projectId: project.id, repository: input.repository });
+}
+
+/** Rejects a schema-valid hallucinated citation before it can become workflow state. */
+function validateEvidenceCitations(reconstruction: WorkflowReconstruction, validEvidenceIds: ReadonlySet<string>): WorkflowReconstruction {
+  const claims = [...reconstruction.steps, ...reconstruction.rules, ...reconstruction.contradictions];
+  for (const claim of claims) {
+    if (claim.evidenceIds.some((id) => !validEvidenceIds.has(id))) {
+      throw new ReconstructionOutputError('The workflow model cited evidence that is not part of this project.');
+    }
+  }
+  return reconstruction;
 }
 
 async function persist(input: {

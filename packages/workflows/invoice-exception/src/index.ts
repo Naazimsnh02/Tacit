@@ -61,6 +61,7 @@ export const invoiceExceptionWorkflowPack = defineWorkflowPack({
   },
   eventCatalog: ['open_document', 'switch_tab', 'compare_values', 'highlight_field', 'open_vendor_history', 'read_email', 'check_approval_threshold', 'select_decision', 'add_note', 'complete_review'],
   evidenceTypes: ['invoice_sop', 'invoice_document', 'purchase_order_record', 'delivery_record', 'vendor_email', 'approval_matrix'],
+  supportedEvidenceArtifactTypes: ['sop', 'document', 'spreadsheet', 'image', 'audio', 'video'],
   supportedActions: invoiceActions,
   approvalPolicy: { type: 'value_threshold', thresholdSource: 'approval_matrix' },
   evaluationDefinition: { fixtureSet: 'invoice-exception-historical-cases' },

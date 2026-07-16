@@ -20,9 +20,13 @@ export class SupabaseAgentBuildRepository implements AgentBuildRepository {
   }
 
   async getWorkflowVersion(id: string, projectId: string) {
-    const rows = await this.request(`workflow_versions?id=eq.${encodeURIComponent(id)}&project_id=eq.${encodeURIComponent(projectId)}&select=id,project_id,version,specification,projects!inner(workflow_type)`) as Row[];
+    const rows = await this.request(`workflow_versions?id=eq.${encodeURIComponent(id)}&project_id=eq.${encodeURIComponent(projectId)}&select=id,project_id,version,specification,projects!inner(workflow_type,mode)`) as Row[];
     const row = rows[0];
-    return row ? { id: String(row.id), projectId: String(row.project_id), version: Number(row.version), specification: row.specification, workflowType: String((row.projects as Row).workflow_type) } : null;
+    return row ? { id: String(row.id), projectId: String(row.project_id), version: Number(row.version), specification: row.specification, workflowType: String((row.projects as Row).workflow_type), mode: (row.projects as Row).mode === 'demo' ? 'demo' as const : 'production' as const } : null;
+  }
+  async hasWorkflowConfirmation(input: { workflowVersionId: string; projectId: string }) {
+    const rows = await this.request(`workflow_confirmations?workflow_version_id=eq.${encodeURIComponent(input.workflowVersionId)}&project_id=eq.${encodeURIComponent(input.projectId)}&select=workflow_version_id&limit=1`) as Row[];
+    return rows.length > 0;
   }
   async getTestCaseIds(projectId: string) {
     const rows = await this.request(`test_cases?project_id=eq.${encodeURIComponent(projectId)}&select=id&order=created_at.asc`) as Row[];
