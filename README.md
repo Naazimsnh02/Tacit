@@ -5,521 +5,192 @@
 </p>
 
 <p align="center">
-  Tacit observes how subject-matter experts complete business workflows, discovers hidden decision rules, asks targeted clarification questions, generates executable agents, and verifies them against historical cases.
+  Tacit captures how subject-matter experts actually work, turns that evidence into a confirmed workflow, and compiles it into a safe, testable agent with people kept in control.
 </p>
 
 <p align="center">
-  <a href="#demo">Demo</a> •
-  <a href="#features">Features</a> •
+  <a href="#how-tacit-works">How it works</a> •
+  <a href="#invoice-exception-review">Invoice Exception Review</a> •
   <a href="#architecture">Architecture</a> •
-  <a href="#getting-started">Getting Started</a> •
-  <a href="#hackathon-submission">Hackathon Submission</a>
+  <a href="#getting-started">Getting started</a> •
+  <a href="#hackathon-submission">Hackathon submission</a>
 </p>
 
 <p align="center">
-  <img alt="Hackathon" src="https://img.shields.io/badge/OpenAI-Build%20Week-111827?logo=openai&logoColor=white">
+  <img alt="OpenAI Build Week" src="https://img.shields.io/badge/OpenAI-Build%20Week-111827?logo=openai&logoColor=white">
   <img alt="Track" src="https://img.shields.io/badge/Track-Work%20%26%20Productivity-2563EB">
-  <img alt="GPT-5.6" src="https://img.shields.io/badge/Powered%20by-GPT--5.6-7C3AED">
+  <img alt="OpenAI Responses API" src="https://img.shields.io/badge/OpenAI-Responses%20API-412991?logo=openai&logoColor=white">
   <img alt="Codex" src="https://img.shields.io/badge/Built%20with-Codex-0F172A">
   <img alt="Next.js" src="https://img.shields.io/badge/Next.js-TypeScript-black?logo=next.js">
   <img alt="FastAPI" src="https://img.shields.io/badge/FastAPI-Python-009688?logo=fastapi">
+  <img alt="Supabase" src="https://img.shields.io/badge/Supabase-Postgres%20%2B%20Storage-3ECF8E?logo=supabase&logoColor=white">
   <img alt="License" src="https://img.shields.io/badge/License-MIT-green">
 </p>
 
 ---
 
-## Overview
+## The problem
 
-Most business workflows are only partially documented. The critical logic often lives in expert judgment, exceptions, informal rules, email context, and approval habits.
+Most business workflows are only partly written down. The rules that matter often live in expert judgment: how someone handles an exception, when they trust a vendor email, when a small variance is acceptable, or when they stop and ask for approval.
 
-Tacit helps teams capture that knowledge and convert it into a safe, testable automation workflow.
+Conventional automation assumes a complete SOP already exists. That leaves teams with long discovery cycles, brittle rules, poor traceability, and automation that cannot explain why it made a decision.
 
-The core loop is:
+Tacit starts with the work itself. It combines documents, recordings, structured observations, and expert narration to surface the tacit knowledge behind a process—then makes that knowledge reviewable, testable, and safe to apply.
 
-```text
-Observe
-→ Reconstruct
-→ Clarify
-→ Compile
-→ Test
-→ Repair
-→ Verify
-→ Human approval
-```
+## How Tacit works
 
-For the hackathon demo, Tacit uses **invoice exception review** as its first workflow pack. The underlying platform remains domain-agnostic so future workflow packs can support areas such as customer support, procurement, compliance, onboarding, claims, and operational approvals.
+~~~text
+Ingest evidence -> Observe -> Extract -> Clarify -> Compile -> Test -> Repair -> Verify
+~~~
 
----
+1. **Ingest evidence** — Bring in SOPs, documents, spreadsheets, images, audio, and review recordings with provenance and retention controls.
+2. **Observe expert work** — Capture the relevant steps, narration, decisions, and citations while a subject-matter expert completes a real workflow.
+3. **Extract the workflow** — Use structured AI outputs to identify steps, rules, exceptions, contradictions, approvals, and unknowns.
+4. **Clarify what matters** — Ask focused questions that resolve policy ambiguity and set appropriate automation boundaries.
+5. **Confirm the specification** — An SME confirms the workflow, decision rules, evidence trail, and approval policy before any code is generated.
+6. **Compile and test** — Codex produces deterministic decision code and focused tests from the confirmed typed workflow specification.
+7. **Repair and verify** — Failed generated builds receive a bounded repair attempt, then pass static validation, generated tests, historical replay, and explicit promotion gates.
 
-## Hackathon Track
+The result is not a black-box automation. It is an evidence-backed workflow with a clear human approval boundary and an audit trail.
 
-**Work and Productivity**
+## What Tacit delivers
 
-Tacit helps teams document, automate, validate, and safely scale expert business processes.
+| Capability | Outcome |
+| --- | --- |
+| Evidence-backed workflow discovery | Every inferred rule, exception, and recommendation can point back to durable source material. |
+| Expert clarification | SMEs resolve the ambiguities that determine safety, accuracy, and approval boundaries. |
+| Versioned workflow intelligence | Confirmed rules, workflow graphs, and changes are retained as explicit versions. |
+| Tested agent builds | Generated code is tied to a typed workflow IR, provenance, static analysis, tests, and promotion state. |
+| Historical replay | Teams can compare recommendations with labelled prior cases before relying on a build. |
+| Supervised decisions | High-risk and ambiguous outcomes stop for human review with evidence and reasoning attached. |
+| Audit and impact views | Projects retain approvals, build activity, evidence trails, and measured workflow outcomes. |
 
----
+## Invoice Exception Review
 
-## Problem
+**Invoice Exception Review** is Tacit's first production workflow pack. It demonstrates the complete loop without baking invoice concepts into the platform core.
 
-Traditional workflow automation usually starts with a written process document.
+The pack brings together invoices, purchase orders, delivery confirmations, vendor messages, approval policy, and expert decisions. It can surface cases such as quantity or price variance, missing documents, duplicate invoices, conditional approvals, high-value review thresholds, and conflicts between written SOPs and actual expert practice.
 
-In practice:
+The guided demo is available at /demo and uses a dedicated synthetic tenant. The production journey begins at /projects, where authenticated users work in tenant-scoped projects and upload their own evidence.
 
-- SOPs are incomplete or outdated
-- Experts make undocumented decisions
-- Exceptions are handled inconsistently
-- Automation teams spend weeks interviewing stakeholders
-- Generated agents are difficult to validate
-- High-risk decisions require governance and human approval
+### A representative flow
 
-Tacit starts with the work itself rather than assuming the process is already fully documented.
+1. An AP expert reviews an invoice and narrates the decision.
+2. Tacit records the evidence and reconstructs the workflow.
+3. A contradiction or hidden rule becomes a targeted clarification.
+4. The confirmed workflow is compiled into an agent and its tests.
+5. Historical cases are replayed against the build.
+6. A high-value or ambiguous case is routed to an approval queue rather than acted on autonomously.
 
----
-
-## Solution
-
-Tacit records structured actions and expert narration while a workflow is performed.
-
-GPT-5.6 then:
-
-1. Reconstructs the workflow
-2. Identifies hidden rules and exceptions
-3. Detects contradictions between observed behavior and written policy
-4. Generates high-value clarification questions
-5. Recommends automation boundaries
-6. Produces a structured workflow specification
-7. Analyzes agent failures and proposes corrections
-
-Codex then helps generate and refine:
-
-- Typed workflow code
-- Decision functions
-- Validation logic
-- Approval checkpoints
-- Test fixtures
-- Regression tests
-- Runtime manifests
-
-The generated agent is tested in a restricted runtime before it is considered ready.
-
----
-
-## Features
-
-### Observe expert work
-
-- Simulated business workspace
-- Structured action recording
-- Narration capture
-- Evidence references
-- Activity timeline
-
-### Discover tacit knowledge
-
-- Workflow reconstruction
-- Decision-rule extraction
-- Exception detection
-- Contradiction mining
-- Evidence-backed reasoning
-
-### Clarify uncertainty
-
-- Adaptive SME questions
-- Suggested answer types
-- Rule-level evidence
-- Workflow versioning
-- AI-inferred versus SME-confirmed states
-
-### Generate an executable agent
-
-- Typed workflow specification
-- Deterministic rule compilation
-- Generated Python decision logic
-- Generated tests
-- Build progress console
-
-### Verify before deployment
-
-- Static code validation
-- Restricted execution
-- Historical replay
-- Failure categorization
-- Regression tests
-- Confidence and evidence reporting
-
-### Keep humans in control
-
-- Approval thresholds
-- Missing-evidence escalation
-- Low-confidence review
-- Policy-conflict handling
-- Audit trail
-
-### Measure impact
-
-- Safe automation coverage
-- Human-review rate
-- Test pass rate
-- Rules discovered
-- Undocumented exceptions
-- Estimated handling-time reduction
-
----
-
-## Demo
-
-The demo uses invoice exception review and is explicitly isolated from production projects. Open `/demo` for synthetic guided data, or `/projects` to sign in and create a tenant-isolated production project. See [the production contract](docs/production-contract.md) for mode, retention, and v1 safety boundaries.
-
-### Example workflow
-
-1. An expert reviews an invoice
-2. Tacit records the actions and narration
-3. GPT-5.6 reconstructs the workflow
-4. Tacit detects a policy contradiction
-5. The expert answers a clarification question
-6. Codex generates executable workflow logic and tests
-7. One test fails because a hidden condition is missing
-8. GPT-5.6 identifies the missing rule
-9. Codex updates the implementation and regression test
-10. Historical cases are replayed
-11. A high-value invoice stops for human approval
-
-### Demo data
-
-The seeded dataset includes:
-
-- Invoice records
-- Purchase orders
-- Delivery confirmations
-- Vendor emails
-- Approval matrix
-- Written SOP
-- Expert-labelled historical outcomes
-
-### Seeded edge cases
-
-- Exact invoice and purchase-order match
-- Quantity variance within tolerance
-- Quantity variance above tolerance
-- Price mismatch
-- Missing purchase order
-- Missing delivery confirmation
-- Duplicate invoice
-- High-value invoice
-- Conditional email approval
-- Conflict between SOP and expert behavior
-
----
+<p align="center">
+  <img src="apps/web/public/images/ap-reviewer-observation.png" alt="Tacit invoice exception observation workspace" width="900">
+</p>
 
 ## Architecture
 
-Tacit uses a generic core plus workflow packs.
+Tacit is a reusable platform with workflow packs. The core owns shared concepts such as organizations, projects, evidence, observations, workflow versions, builds, evaluations, approvals, and audit records. Each workflow pack owns its domain schemas, UI configuration, prompts, policies, fixtures, and tests.
 
-```text
-┌───────────────────────────────────────────────────────────┐
-│                       Tacit Web App                       │
-│ Observe │ Discover │ Workflow │ Build │ Test │ Approvals │
-└─────────────────────────────┬─────────────────────────────┘
-                              │
-┌─────────────────────────────▼─────────────────────────────┐
-│                    Generic Application API                │
-│ Projects │ Sessions │ Evidence │ Builds │ Tests │ Audit  │
-└───────────────┬────────────────────────┬──────────────────┘
-                │                        │
-┌───────────────▼─────────────┐  ┌───────▼─────────────────┐
-│ Core Platform Services      │  │ Workflow Pack Registry  │
-│ Observation                 │  │                         │
-│ Reconstruction              │  │ invoice_exception       │
-│ Clarification               │  │ future_workflow_pack    │
-│ Versioning                  │  │ ...                     │
-│ Evaluation                  │  └───────────┬─────────────┘
-│ Approval and audit          │              │
-└───────────────┬─────────────┘              │
-                │                            │
-        ┌───────▼─────────┐         ┌────────▼────────────┐
-        │ OpenAI API      │         │ Pack-specific data │
-        │ GPT-5.6         │         │ UI, schemas, tests │
-        │ Codex           │         │ prompts, policies  │
-        └───────┬─────────┘         └─────────────────────┘
-                │
-        ┌───────▼─────────────────────────────────────────┐
-        │              Python Agent Runtime               │
-        │ Compiler │ Validator │ Sandbox │ pytest │ Replay│
-        └─────────────────────────────────────────────────┘
-```
+~~~text
+                             Tacit Web Application
+             Projects | Evidence | Observe | Clarify | Build | Replay | Approvals
+                                           |
+              Supabase Auth + Postgres/RLS + private object storage
+                                           |
+          +----------------+---------------+----------------+
+          |                |                                |
+   Evidence ingestion   Workflow intelligence          Agent runtime
+   scan / extract /     structured reconstruction      AST validation +
+   OCR / transcription  and SME confirmation          isolated Docker execution
+          |                |                                |
+          +----------------+---------------+----------------+
+                                           |
+                              Workflow-pack registry
+                     Invoice Exception Review | Sample Support
+~~~
 
-### Core platform responsibilities
+~~~text
+apps/web                   Next.js application, APIs, and product UI
+apps/agent-runtime         FastAPI runtime and evidence-ingestion worker
+packages/core-schemas      Shared domain-agnostic schemas
+packages/prompts           Shared and workflow-pack prompt construction
+packages/workflow-sdk      Workflow-pack authoring utilities
+packages/workflow-registry Pack discovery and loading
+packages/workflows/        Invoice Exception Review and sample-support packs
+supabase/migrations        Database, RLS, Storage, and audit migrations
+generated/                 Local development build workspaces only
+~~~
 
-- Projects
-- Observation sessions
-- Workflow events
-- Evidence references
-- Workflow versions
-- Clarification
-- Agent builds
-- Evaluations
-- Approvals
-- Audit history
-- Impact metrics
+## Intelligence, compilation, and trust
 
-### Workflow pack responsibilities
+Tacit uses the OpenAI Responses API for the work that benefits from reasoning: reconstructing workflows, identifying contradictions, generating clarification questions, explaining failures, and producing constrained agent code. Model IDs are configured through the environment rather than embedded in product logic.
 
-- Domain input schemas
-- Workspace configuration
-- Supported actions
-- Evidence types
-- Prompt context
-- Approval defaults
-- Seed data
-- Evaluation fixtures
-- Domain-specific tests
+Deterministic code handles thresholds, comparisons, validation, matching, and state transitions. AI output is schema-validated before application logic can use it, and Codex only receives an SME-confirmed typed workflow specification—not raw customer recordings or unreviewed documents.
 
-Invoice-specific fields must not be added to generic core models.
+Before a generated build is usable, Tacit records its source, prompts, dependency lock, model metadata, static-analysis result, generated-test result, repair attempts, and promotion state. The local runtime validates Python ASTs and import allowlists, then runs code in a short-lived Docker container with a read-only filesystem, default-deny network access, dropped capabilities, an unprivileged user, and bounded resources.
 
----
+Tacit v1 produces recommendations and prepares work. It does not release payments or perform other high-risk external actions autonomously. Those actions require scoped connectors, an approval policy, and an authenticated, auditable human decision.
 
-## Technology Stack
+## Production direction
 
-### Frontend
+Tacit is being developed as a supervised production vertical, with Invoice Exception Review first. The repository includes foundations for tenant-scoped projects, private evidence intake, scan-gated extraction, workflow confirmation, build provenance, replay, approvals, and demo isolation.
 
-- Next.js
-- React
-- TypeScript
-- Tailwind CSS
-- shadcn/ui
-- React Flow
-- TanStack Query
-- Zod
+The next delivery focus is operating these capabilities as a robust pilot: durable worker orchestration, production-grade isolated execution, verified Supabase RLS and Storage policies, monitoring, backups, and pilot reliability gates. The active plan is [prod_implementation.md](prod_implementation.md); supporting contracts are documented in [production-contract.md](docs/production-contract.md), [evidence-intake.md](docs/evidence-intake.md), [sandbox-execution.md](docs/sandbox-execution.md), and [pilot-operations.md](docs/pilot-operations.md).
 
-### Backend
+## Technology stack
 
-- Next.js route handlers
-- FastAPI
-- Python
-- Pydantic
-- PostgreSQL
-- Supabase
-- Server-Sent Events
+| Area | Technologies |
+| --- | --- |
+| Product UI | Next.js, React, TypeScript, Tailwind CSS, shadcn/ui, React Flow |
+| Application APIs | Next.js route handlers, Zod, Server-Sent Events |
+| Runtime and workers | FastAPI, Python, Pydantic, pytest, Docker |
+| Data and tenancy | Supabase Auth, PostgreSQL, Row Level Security, private Storage |
+| AI | OpenAI Responses API and Codex, with environment-configured model IDs |
+| Quality | Vitest, Playwright, pytest, Ruff, TypeScript, ESLint |
 
-### AI
-
-- GPT-5.6 for workflow reasoning, clarification, evaluation, and failure analysis
-- Codex for product implementation and executable agent generation
-- OpenAI Responses API
-
-### Runtime and testing
-
-- Docker or restricted process execution
-- Python AST validation
-- pytest
-- Vitest
-- Playwright
-
----
-
-## GPT-5.6 Usage
-
-GPT-5.6 is used for the reasoning-heavy parts of Tacit:
-
-- Reconstructing workflows from mixed evidence
-- Extracting hidden decision rules
-- Detecting contradictions
-- Generating targeted SME questions
-- Recommending safe automation boundaries
-- Producing structured workflow specifications
-- Comparing expected and actual outcomes
-- Analyzing failed tests
-- Explaining agent decisions
-
-All model outputs used by application logic are validated with typed schemas.
-
-Uploaded files, transcripts, emails, and SOPs are treated as untrusted content.
-
----
-
-## Codex Usage
-
-Codex accelerated both product development and the in-product agent-generation flow.
-
-### Building Tacit
-
-Codex was used to help:
-
-- Scaffold the monorepo
-- Implement UI components
-- Create API routes
-- Define shared schemas
-- Write database migrations
-- Build the workflow-pack registry
-- Create tests
-- Debug integration issues
-- Review architecture
-- Prepare deployment configuration
-
-### Powering Tacit
-
-Inside the product, Codex helps generate:
-
-- Typed input models
-- Decision functions
-- Rule registries
-- Approval policies
-- Test fixtures
-- pytest tests
-- Runtime manifests
-- Regression tests
-
-Generated code is treated as untrusted and must pass validation before execution.
-
----
-
-## Key Technical Decisions
-
-### Generic core with workflow packs
-
-Tacit separates platform concerns from domain-specific behavior. Invoice processing is the first workflow pack, not part of the shared core.
-
-### Structured events over raw screen recordings
-
-The hackathon implementation records structured user actions instead of relying on full desktop video interpretation.
-
-### Deterministic logic where possible
-
-Tacit uses normal code for numeric comparisons, required-field validation, threshold checks, duplicate detection, and state transitions.
-
-GPT-5.6 is used where language understanding, ambiguity, and reasoning are required.
-
-### Version every important change
-
-A new workflow version is created when:
-
-- A clarification answer changes a rule
-- A contradiction is resolved
-- A failed evaluation produces a correction
-- Approval boundaries change
-- Generated agent behavior changes
-
-### Test before trust
-
-Generated code must pass:
-
-- Schema validation
-- Static security checks
-- Unit tests
-- Historical replay
-- Approval-boundary tests
-
----
-
-## Repository Structure
-
-```text
-tacit/
-├── apps/
-│   ├── web/
-│   └── agent-runtime/
-├── packages/
-│   ├── core-schemas/
-│   ├── workflow-sdk/
-│   ├── workflow-registry/
-│   ├── prompts/
-│   ├── config/
-│   └── workflows/
-│       ├── invoice-exception/
-│       └── customer-support-escalation/
-├── generated/
-│   └── <project-id>/<build-id>/
-├── supabase/
-│   ├── migrations/
-│   └── seed.sql
-├── scripts/
-├── tests/
-├── AGENTS.md
-├── idea.md
-├── plan.md
-├── implementation_plan.md
-├── docker-compose.yml
-├── .env.example
-└── README.md
-```
-
----
-
-## Getting Started
+## Getting started
 
 ### Prerequisites
 
-Install:
-
-- Node.js 20 or later
-- npm 10 or later
-- Python 3.11 or later
+- Node.js 20+
+- npm 10+
+- Python 3.11+
 - Docker Desktop
-- Supabase project or local Supabase
-- OpenAI API key
+- A Supabase project with Auth, Postgres, and Storage
+- OpenAI credentials and approved model IDs
 
-### Clone the repository
+### Install dependencies
 
-```bash
-git clone <YOUR_REPOSITORY_URL>
-cd tacit
-```
-
-### Install JavaScript dependencies
-
-```bash
+~~~bash
 npm install
-```
+python -m pip install -e apps/agent-runtime
+python -m pip install ruff
+~~~
 
-### Install Python dependencies
+### Configure the environment
 
-```bash
-cd apps/agent-runtime
-python -m venv .venv
-```
+Copy both templates and provide values for your environment:
 
-macOS or Linux:
+~~~bash
+cp .env.example .env
+cp apps/web/.env.local.example apps/web/.env.local
+~~~
 
-```bash
-source .venv/bin/activate
-```
+On Windows PowerShell:
 
-Windows PowerShell:
+~~~powershell
+Copy-Item .env.example .env
+Copy-Item apps/web/.env.local.example apps/web/.env.local
+~~~
 
-```powershell
-.venv\Scripts\Activate.ps1
-```
+Configure the following values as applicable:
 
-Install dependencies:
-
-```bash
-pip install -r requirements.txt
-cd ../..
-```
-
-### Configure environment variables
-
-```bash
-cp .env.example .env.local
-```
-
-Windows PowerShell:
-
-```powershell
-Copy-Item .env.example .env.local
-```
-
-For the web application, keep the configured file at `apps/web/.env.local`.
-Copy `apps/web/.env.local.example` to that location before starting the app.
-
-Configure:
-
-```bash
+~~~dotenv
 OPENAI_API_KEY=
 OPENAI_REASONING_MODEL=
 OPENAI_DEFAULT_MODEL=
 OPENAI_FAST_MODEL=
 OPENAI_CODEX_MODEL=
+EVIDENCE_TRANSCRIPTION_MODEL=
 
 NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
@@ -527,80 +198,52 @@ SUPABASE_SERVICE_ROLE_KEY=
 
 AGENT_RUNTIME_URL=http://localhost:8000
 AGENT_EXECUTION_TIMEOUT_SECONDS=10
-```
+AGENT_SANDBOX_IMAGE=tacit-agent-sandbox:latest
+NEXT_PUBLIC_DEMO_MODE_ENABLED=true
+PILOT_MAX_ACTIVE_PROJECTS_PER_ORGANIZATION=5
+~~~
 
-### Start supporting services
+Keep SUPABASE_SERVICE_ROLE_KEY and OpenAI keys server-side only.
 
-```bash
-docker compose up -d
-```
+### Prepare Supabase and the local sandbox
 
-### Run database migrations
+Apply the ordered SQL files in supabase/migrations/ through the approved Supabase migration workflow for the target environment. Then build the sandbox image used by the local agent runtime:
 
-```bash
-npm run db:migrate
-```
+~~~bash
+docker build -f apps/agent-runtime/Dockerfile.sandbox -t tacit-agent-sandbox:latest apps/agent-runtime
+~~~
 
-### Load sample data
+### Run Tacit locally
 
-```bash
+Seed the isolated demo tenant:
+
+~~~bash
 npm run seed
-```
+~~~
 
-### Start development
+Start the web app:
 
-```bash
+~~~bash
 npm run dev
-```
+~~~
 
-In a second terminal:
+In another terminal, start the runtime:
 
-```bash
+~~~bash
 npm run runtime:dev
-```
+~~~
 
-Open:
+For the local ingestion worker and ClamAV topology, use Docker Compose after configuring the same environment variables:
 
-```text
-http://localhost:3000
-```
+~~~bash
+docker compose up --build
+~~~
 
----
+Open http://localhost:3000. Use /demo for the guided synthetic experience or /projects for the authenticated project flow.
 
-## Quick Demo Setup
+## Commands
 
-```bash
-npm install
-cp .env.example .env.local
-docker compose up -d
-npm run db:migrate
-npm run seed
-npm run dev
-```
-
-In another terminal:
-
-```bash
-npm run runtime:dev
-```
-
-Then select:
-
-```text
-Start guided demo
-```
-
-Reset the demo:
-
-```bash
-npm run demo:reset
-```
-
----
-
-## Available Commands
-
-```bash
+~~~bash
 npm run dev
 npm run build
 npm run lint
@@ -609,345 +252,64 @@ npm run test
 npm run test:e2e
 npm run seed
 npm run demo:reset
-npm run db:migrate
 npm run runtime:dev
+npm run runtime:lint
 npm run runtime:test
-```
+~~~
 
-Check `package.json` for the authoritative list.
+## Verification
 
----
-
-## Testing
-
-```bash
+~~~bash
 npm run lint
 npm run typecheck
 npm run test
-npm run build
+npm run runtime:lint
 npm run runtime:test
-npm run test:e2e
-```
+npm run build
+~~~
 
----
+For changes that affect Supabase or Storage, also verify migrations and RLS against a real environment. See [AGENTS.md](AGENTS.md) for the engineering boundary and definition of done.
 
-## Security
+## Hackathon submission
 
-Tacit uses synthetic demo data only.
+**Track:** Work and Productivity
 
-Security controls include:
+Tacit was built for OpenAI Build Week as a workflow-learning and agent-compilation product: a way for teams to transform expert judgment into evidence-backed, tested, reviewable AI agents.
 
-- Server-side API keys
-- File type and size validation
-- Sanitized filenames
-- Schema validation for model outputs
-- Prompt-injection boundaries
-- AST validation for generated Python
-- Import allowlists
-- No arbitrary network access
-- No arbitrary filesystem access
-- No process spawning
-- Execution timeouts
-- Human approval for high-risk outcomes
-- Audit logging
+### Three-minute product story
 
-Generated code must never:
+~~~text
+0:00-0:20  The problem: essential workflow rules are tacit, inconsistent, and hard to automate safely.
+0:20-0:50  Observe an invoice-review expert and connect decisions to evidence.
+0:50-1:15  Show the reconstructed workflow, a hidden rule, and a clarification.
+1:15-1:45  Compile a confirmed workflow into code and tests with Codex.
+1:45-2:20  Replay a new case, show the evidence trail, and surface a review boundary.
+2:20-3:00  Show verification, approvals, and the path from expert work to a governed agent.
+~~~
 
-- Install packages
-- Read environment secrets
-- Execute shell commands
-- Access arbitrary files
-- Connect to arbitrary endpoints
-- Perform real financial actions
+### How Codex contributed
 
----
+Codex accelerated the repository architecture, shared schemas, workflow-pack boundary, UI implementation, API routes, Supabase migrations, generated-agent runtime, test coverage, debugging, and documentation. Within Tacit, Codex is used in the controlled compilation flow to generate deterministic decision code and focused tests from a confirmed workflow specification.
 
-## Known Limitations
+### Codex feedback sessions
 
-The hackathon version:
+Feedback uploads completed for the following milestones:
 
-- Uses a simulated invoice-review workspace
-- Uses synthetic data
-- Does not connect to production ERP systems
-- Does not perform real financial actions
-- Supports one fully implemented workflow pack
-- Includes only a lightweight placeholder second workflow pack
-- Uses a constrained generated-code format
-- Is a prototype, not a production deployment
-
-## Supervised pilot operations
-
-The Invoice Exception Review pilot is supervised: it produces recommendations and evidence trails, then requires a recorded human approval before any external action. See [pilot operations](docs/pilot-operations.md) for onboarding, usage limits, diagnostics, monitoring, incident response, backups, privacy, and deletion procedures.
-
----
-
-## Roadmap
-
-Potential workflow packs:
-
-- Customer-support escalation
-- Procurement exception review
-- Compliance case handling
-- Employee onboarding
-- Insurance claims review
-- Contract approval
-- IT access requests
-- Vendor risk review
-
-Potential platform improvements:
-
-- Real enterprise connectors
-- Multi-user organizations
-- Role-based access
-- Production monitoring
-- Workflow scheduling
-- Advanced analytics
-- Connector generation
-- Cross-workflow knowledge reuse
-
----
-
-## Hackathon Submission
-
-### Category
-
-**Work and Productivity**
-
-### Project description
-
-Tacit is a workflow-learning and agent-compilation platform that observes how experts perform business processes, discovers undocumented rules and exceptions, asks targeted clarification questions, generates executable workflow agents, and verifies them through automated tests and historical replay.
-
-The demo focuses on invoice exception review while keeping the platform extensible through workflow packs.
-
-### Working project
-
-- Repository: `<PUBLIC_REPOSITORY_URL>`
-- Demo instance: `<DEMO_URL>`
-- Test account: `<OPTIONAL_TEST_ACCOUNT>`
-- Demo reset: `npm run demo:reset`
-
-### Demo video
-
-Requirements:
-
-- Public YouTube URL
-- Under three minutes
-- Functioning project shown
-- Audio included
-- GPT-5.6 usage explained
-- Codex usage explained
-
-Video URL:
-
-```text
-<YOUTUBE_DEMO_URL>
-```
-
-### Suggested three-minute flow
-
-```text
-0:00–0:20  Explain the problem
-0:20–0:50  Observe the expert workflow
-0:50–1:15  Show discovered rules and contradiction
-1:15–1:45  Build the agent and show a failed test
-1:45–2:20  Repair and run a new case
-2:20–2:45  Show replay and approval
-2:45–3:00  Close with impact
-```
-
-### Codex acceleration
-
-Highlight:
-
-- Repository scaffolding
-- Workflow-pack architecture
-- Shared schemas
-- Database migrations
-- UI implementation
-- Agent runtime
-- Generated workflow logic
-- Generated tests
-- Failure repair
-- Code review and debugging
-
-### Key decisions
-
-Highlight:
-
-- Generic core plus workflow packs
-- Structured events instead of desktop video
-- Deterministic logic where possible
-- Restricted generated-code execution
-- Evidence-backed decisions
-- Historical replay before trust
-- Human approval for high-risk cases
-
-### GPT-5.6 usage
-
-Highlight:
-
-- Workflow reconstruction
-- Hidden-rule extraction
-- Contradiction detection
-- SME clarification
-- Automation-boundary recommendations
-- Failure analysis
-- Decision explanation
-
-### Codex feedback session
-
-Feedback upload completed.
-
-```text
-Thread ID:
-Milestone 0 - 019f6550-4f79-7ea1-bfcb-0ff381635ee5, 
-Milestone 1 - 019f656f-697c-7372-9ebe-e20acad2dec6, 
-Milestone 2 - 019f65a1-b896-78d0-bb9a-6b17bf069623,
-Milestone 3 - 019f65bd-a0c0-7e30-af90-f358681c505a,
-Milestone 4 - 019f65d6-5790-73e1-8237-a725a98bb0f7,
-Milestone 5 - 019f6611-6752-7de2-8fe7-7add76cb2cee,
-Milestone 6 - 019f6626-7c7e-7c83-a243-43eb24186587,
-Milestone 7 - 019f6644-00a9-7ca2-909b-6ae90b2d1bb1,
-Milestone 8 - 019f6688-b0b8-7d41-841c-6c0200573854,
-Milestone 9 - 019f66a7-67b3-79d3-a8e7-517f4de8ab9c,
-Milestone 10 - 019f6868-2613-7870-91d4-7a43892ee49e,
+~~~text
+Milestone 0  - 019f6550-4f79-7ea1-bfcb-0ff381635ee5
+Milestone 1  - 019f656f-697c-7372-9ebe-e20acad2dec6
+Milestone 2  - 019f65a1-b896-78d0-bb9a-6b17bf069623
+Milestone 3  - 019f65bd-a0c0-7e30-af90-f358681c505a
+Milestone 4  - 019f65d6-5790-73e1-8237-a725a98bb0f7
+Milestone 5  - 019f6611-6752-7de2-8fe7-7add76cb2cee
+Milestone 6  - 019f6626-7c7e-7c83-a243-43eb24186587
+Milestone 7  - 019f6644-00a9-7ca2-909b-6ae90b2d1bb1
+Milestone 8  - 019f6688-b0b8-7d41-841c-6c0200573854
+Milestone 9  - 019f66a7-67b3-79d3-a8e7-517f4de8ab9c
+Milestone 10 - 019f6868-2613-7870-91d4-7a43892ee49e
 Milestone 11 - 019f6872-6d2b-73d1-84f0-52a3e870aa1f
-```
-
-Use the relevant `/feedback` Codex Session ID in the Devpost submission form.
-
-### Repository access
-
-The repository must be:
-
-- Public with a relevant license, or
-- Private and shared with:
-  - `testing@devpost.com`
-  - `build-week-event@openai.com`
-
-### Required repository contents
-
-- Setup instructions
-- Environment-variable guidance
-- Sample data
-- Demo instructions
-- Test commands
-- Architecture documentation
-- License
-- GPT-5.6 usage
-- Codex usage
-- Known limitations
-
----
-
-## Submission Checklist
-
-### Project
-
-- [ ] Working project
-- [ ] Work and Productivity category selected
-- [ ] Clear project description
-- [ ] Public demo URL or reproducible setup
-- [ ] Sample data included
-- [ ] Demo reset works
-- [ ] Public or judge-accessible repository
-- [ ] Relevant license included
-
-### Video
-
-- [ ] Public YouTube video
-- [ ] Under three minutes
-- [ ] Working product shown
-- [ ] Audio included
-- [ ] GPT-5.6 usage explained
-- [ ] Codex usage explained
-- [ ] Failed test and repair shown
-- [ ] Human approval shown
-
-### Documentation
-
-- [ ] Setup instructions verified
-- [ ] Supported platforms documented
-- [ ] Environment variables documented
-- [ ] Test commands documented
-- [ ] Architecture explained
-- [ ] Sample data documented
-- [ ] Known limitations documented
-- [ ] Security boundaries documented
-
-### Codex evidence
-
-- [ ] Codex contribution documented
-- [ ] Key technical decisions documented
-- [ ] `/feedback` submitted
-- [ ] Session or Thread ID added to Devpost
-- [ ] Relevant Codex logs retained
-
----
-
-## Supported Platforms
-
-- Windows 11
-- macOS
-- Linux
-- Docker Desktop
-- Modern Chromium-based browsers
-
----
-
-## Judge Testing Guide
-
-1. Clone the repository
-2. Configure `.env.local`
-3. Start Docker services
-4. Run migrations
-5. Load seed data
-6. Start the web app and runtime
-7. Open the guided demo
-8. Complete the observation
-9. Generate the workflow
-10. Answer the clarification
-11. Build the agent
-12. Run historical replay
-13. Inspect the human approval case
-
-Provide a hosted demo URL when available so judges can test Tacit without rebuilding it.
-
----
+~~~
 
 ## License
 
-This project is licensed under the MIT License.
-
-See `LICENSE` for details.
-
----
-
-## Acknowledgements
-
-Built for OpenAI Build Week using:
-
-- GPT-5.6
-- Codex
-- OpenAI Responses API
-- Next.js
-- FastAPI
-- Supabase
-- React Flow
-
----
-
-## Contact
-
-Project author:
-
-```text
-<YOUR_NAME>
-<YOUR_EMAIL_OR_PROFILE>
-```
-
-Project links:
-
-- Repository: `<REPOSITORY_URL>`
-- Demo: `<DEMO_URL>`
-- Video: `<YOUTUBE_URL>`
+MIT
