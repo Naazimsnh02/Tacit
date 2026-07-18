@@ -5,13 +5,37 @@ services:
       dockerfile: apps/web/Dockerfile
     environment:
       AGENT_RUNTIME_URL: http://agent-runtime:8000
+      LLM_BACKEND: ${LLM_BACKEND:-openai_api}
+      CODEX_SUBSCRIPTION_RUNNER_URL: http://codex-runner:8100
+      CODEX_SUBSCRIPTION_RUNNER_SECRET: ${CODEX_SUBSCRIPTION_RUNNER_SECRET:-}
+      CODEX_SUBSCRIPTION_MODEL: ${CODEX_SUBSCRIPTION_MODEL:-}
     ports:
       - "3000:3000"
     depends_on:
       agent-runtime:
         condition: service_healthy
+      codex-runner:
+        condition: service_healthy
     volumes:
       - ./generated:/app/generated
+  codex-runner:
+    build:
+      context: apps/agent-runtime
+    command: ["uvicorn", "app.codex_runner_api:app", "--host", "0.0.0.0", "--port", "8100"]
+    ports:
+      - "127.0.0.1:8100:8100"
+    environment:
+      CODEX_HOME: /codex-home
+      CODEX_SUBSCRIPTION_RUNNER_SECRET: ${CODEX_SUBSCRIPTION_RUNNER_SECRET:-}
+      CODEX_SUBSCRIPTION_MODEL: ${CODEX_SUBSCRIPTION_MODEL:-}
+      CODEX_SUBSCRIPTION_TIMEOUT_SECONDS: ${CODEX_SUBSCRIPTION_TIMEOUT_SECONDS:-120}
+    volumes:
+      - codex-subscription-auth:/codex-home
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8100/health')"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
   agent-runtime:
     build:
       context: apps/agent-runtime
@@ -22,7 +46,13 @@ services:
       NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL}
       SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY}
       OPENAI_API_KEY: ${OPENAI_API_KEY}
-      EVIDENCE_TRANSCRIPTION_MODEL: ${EVIDENCE_TRANSCRIPTION_MODEL}
+      EVIDENCE_TRANSCRIPTION_MODEL: ${EVIDENCE_TRANSCRIPTION_MODEL:-}
+      EVIDENCE_TRANSCRIPTION_PROVIDER: ${EVIDENCE_TRANSCRIPTION_PROVIDER:-openai}
+      EVIDENCE_AUDIO_TRANSCRIPTION_PROVIDER: ${EVIDENCE_AUDIO_TRANSCRIPTION_PROVIDER:-}
+      EVIDENCE_VIDEO_TRANSCRIPTION_PROVIDER: ${EVIDENCE_VIDEO_TRANSCRIPTION_PROVIDER:-}
+      EVIDENCE_MODAL_TRANSCRIPTION_URL: ${EVIDENCE_MODAL_TRANSCRIPTION_URL:-}
+      EVIDENCE_MODAL_PROXY_AUTH_KEY: ${EVIDENCE_MODAL_PROXY_AUTH_KEY:-}
+      EVIDENCE_MODAL_PROXY_AUTH_SECRET: ${EVIDENCE_MODAL_PROXY_AUTH_SECRET:-}
       CLAMAV_HOST: clamav
       AGENT_SANDBOX_IMAGE: ${AGENT_SANDBOX_IMAGE:-tacit-agent-sandbox:latest}
     volumes:
@@ -41,7 +71,13 @@ services:
       NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL}
       SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY}
       OPENAI_API_KEY: ${OPENAI_API_KEY}
-      EVIDENCE_TRANSCRIPTION_MODEL: ${EVIDENCE_TRANSCRIPTION_MODEL}
+      EVIDENCE_TRANSCRIPTION_MODEL: ${EVIDENCE_TRANSCRIPTION_MODEL:-}
+      EVIDENCE_TRANSCRIPTION_PROVIDER: ${EVIDENCE_TRANSCRIPTION_PROVIDER:-openai}
+      EVIDENCE_AUDIO_TRANSCRIPTION_PROVIDER: ${EVIDENCE_AUDIO_TRANSCRIPTION_PROVIDER:-}
+      EVIDENCE_VIDEO_TRANSCRIPTION_PROVIDER: ${EVIDENCE_VIDEO_TRANSCRIPTION_PROVIDER:-}
+      EVIDENCE_MODAL_TRANSCRIPTION_URL: ${EVIDENCE_MODAL_TRANSCRIPTION_URL:-}
+      EVIDENCE_MODAL_PROXY_AUTH_KEY: ${EVIDENCE_MODAL_PROXY_AUTH_KEY:-}
+      EVIDENCE_MODAL_PROXY_AUTH_SECRET: ${EVIDENCE_MODAL_PROXY_AUTH_SECRET:-}
       CLAMAV_HOST: clamav
       EVIDENCE_WORKER_POLL_SECONDS: 5
     depends_on:
@@ -56,3 +92,5 @@ services:
       timeout: 10s
       retries: 20
     restart: unless-stopped
+volumes:
+  codex-subscription-auth:

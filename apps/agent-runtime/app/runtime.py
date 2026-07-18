@@ -69,21 +69,24 @@ class ContainerLimits:
 
 
 def create_container_command(
-    directory: Path,
+    directory: Path | str,
     command: list[str],
     image: str,
     container_name: str,
     limits: ContainerLimits = ContainerLimits(),
+    interactive: bool = False,
 ) -> list[str]:
     """Build the Docker invocation without inheriting host state or credentials."""
+    mount_source = str(directory.resolve()) if isinstance(directory, Path) else directory
     return [
         "docker", "run", "--rm", "--name", container_name,
+        *(["-i"] if interactive else []),
         "--network", "none", "--read-only", "--cap-drop", "ALL",
         "--security-opt", "no-new-privileges", "--pids-limit", str(limits.pids),
         "--memory", limits.memory, "--memory-swap", limits.memory,
         "--cpus", limits.cpus, "--ulimit", "nofile=64:64",
         "--tmpfs", f"/tmp:rw,nosuid,nodev,noexec,size={limits.tmpfs_size}",
-        "--mount", f"type=bind,src={directory.resolve()},dst=/workspace,readonly",
+        "--mount", f"type=bind,src={mount_source},dst=/workspace,readonly",
         "--workdir", "/workspace", "--user", "65532:65532",
         "--env", "PYTHONDONTWRITEBYTECODE=1", image, *command,
     ]
@@ -92,9 +95,10 @@ def create_container_command(
 class DockerContainerRunner:
     """Executes an artifact in a one-shot Docker container, never on the host."""
 
-    def __init__(self, image: str, limits: ContainerLimits = ContainerLimits()) -> None:
+    def __init__(self, image: str, limits: ContainerLimits = ContainerLimits(), generated_root: Path | None = None) -> None:
         self.image = image
         self.limits = limits
+        self.generated_root = generated_root.resolve() if generated_root else None
 
     def run(self, directory: Path, command: list[str], stdin: str | None, timeout_seconds: int) -> ProcessReport:
         if not shutil.which("docker"):
@@ -103,7 +107,9 @@ class DockerContainerRunner:
             raise RuntimeError("Generated build artifact was not found.")
 
         container_name = f"tacit-agent-{uuid4().hex}"
-        docker_command = create_container_command(directory, command, self.image, container_name, self.limits)
+        docker_command = create_container_command(
+            self._host_visible_directory(directory), command, self.image, container_name, self.limits, interactive=stdin is not None,
+        )
         started = time.monotonic()
         try:
             process = subprocess.Popen(
@@ -112,7 +118,7 @@ class DockerContainerRunner:
         except OSError as error:
             raise RuntimeError("The isolated container runtime could not start.") from error
 
-        if stdin:
+        if stdin is not None:
             assert process.stdin is not None
             try:
                 process.stdin.write(stdin.encode("utf-8"))
@@ -152,6 +158,42 @@ class DockerContainerRunner:
         # The generated program is already inside Docker; this only stops its
         # named ephemeral container when a runtime limit is exceeded.
         subprocess.run(["docker", "kill", container_name], capture_output=True, check=False, timeout=2)
+
+    def _host_visible_directory(self, directory: Path) -> Path | str:
+        """Translate a Compose bind mount to the path seen by the Docker daemon."""
+        if self.generated_root is None:
+            return directory
+        try:
+            relative_directory = directory.relative_to(self.generated_root)
+        except ValueError:
+            return directory
+
+        import os
+
+        configured_root = os.environ.get("TACIT_GENERATED_HOST_ROOT")
+        if configured_root:
+            return _join_docker_path(configured_root, relative_directory)
+
+        container_id = os.environ.get("HOSTNAME")
+        if not container_id:
+            return directory
+        try:
+            inspected = subprocess.run(
+                ["docker", "inspect", "--format", '{{range .Mounts}}{{if eq .Destination "/generated"}}{{.Source}}{{end}}{{end}}', container_id],
+                capture_output=True, check=True, text=True, timeout=2,
+            )
+        except (OSError, subprocess.CalledProcessError, subprocess.TimeoutExpired):
+            return directory
+        host_root = inspected.stdout.strip()
+        return _join_docker_path(host_root, relative_directory) if host_root else directory
+
+
+def _join_docker_path(root: str, relative_directory: Path) -> Path | str:
+    """Preserve Docker Desktop's Windows bind-mount paths inside Linux workers."""
+    if re.match(r"^[A-Za-z]:[\\/]", root):
+        trimmed_root = root.rstrip("\\/")
+        return f"{trimmed_root}/{relative_directory.as_posix()}"
+    return Path(root) / relative_directory
 
 
 def _capture_process_output(process: subprocess.Popen[bytes]) -> tuple[Callable[[], str], Callable[[], str], threading.Event]:
@@ -265,6 +307,8 @@ class RuntimeService:
             validator = GeneratedCodeValidator(file.name)
             validator.visit(tree)
             errors.extend(validator.errors)
+            if file.name == "agent.py":
+                errors.extend(_agent_entrypoint_errors(tree))
         return ValidationReport(not errors, errors, len(files))
 
     def test(self, build_id: UUID) -> ProcessReport:
@@ -303,7 +347,35 @@ def default_runtime_service() -> RuntimeService:
     root = Path(os.environ.get("TACIT_GENERATED_ROOT", Path.cwd() / "generated"))
     timeout = int(os.environ.get("AGENT_EXECUTION_TIMEOUT_SECONDS", "10"))
     image = os.environ.get("AGENT_SANDBOX_IMAGE", "tacit-agent-sandbox:latest")
-    return RuntimeService(root, timeout, DockerContainerRunner(image))
+    return RuntimeService(root, timeout, DockerContainerRunner(image, generated_root=root))
+
+
+def _agent_entrypoint_errors(tree: ast.Module) -> list[str]:
+    """Require the stable callable interface used by isolated replay execution."""
+    entrypoint = next(
+        (
+            statement
+            for statement in tree.body
+            if isinstance(statement, ast.FunctionDef) and statement.name == "evaluate"
+        ),
+        None,
+    )
+    if entrypoint is None:
+        return ["agent.py: missing required entrypoint 'def evaluate(payload)'"]
+
+    arguments = entrypoint.args
+    positional = [*arguments.posonlyargs, *arguments.args]
+    if (
+        len(positional) != 1
+        or positional[0].arg != "payload"
+        or arguments.vararg is not None
+        or arguments.kwarg is not None
+        or arguments.kwonlyargs
+        or arguments.defaults
+        or arguments.kw_defaults
+    ):
+        return ["agent.py: entrypoint must be exactly 'def evaluate(payload)'"]
+    return []
 
 
 def _parse_pytest_counts(output: str) -> tuple[int, int]:

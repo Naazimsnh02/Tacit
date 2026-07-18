@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
-import { createOpenAiReconstructionModel } from '../../../../../../lib/reconstruction/openai-model';
+import { createConfiguredReconstructionModel } from '../../../../../../lib/reconstruction/openai-model';
 import { ReconstructionInputError, ReconstructionOutputError, reconstructWorkflow } from '../../../../../../lib/reconstruction/service';
 import { SupabaseReconstructionRepository } from '../../../../../../lib/reconstruction/supabase-repository';
 import { createWorkflowRegistry } from '../../../../../../lib/workflow-packs';
@@ -18,7 +18,7 @@ export async function POST(request: Request, context: { params: Promise<{ projec
       const actor = await authenticateRequest(request);
       if (!canWrite(await organizationRoleFor(actor.id, project.organization_id))) throw new ApiError(403, 'You do not have permission to reconstruct this workflow.');
     }
-    const result = await reconstructWorkflow({ projectId, sessionId: input.sessionId, finalDecision: input.finalDecision ?? null, registry: createWorkflowRegistry(), repository: new SupabaseReconstructionRepository(), model: createOpenAiReconstructionModel() });
+    const result = await reconstructWorkflow({ projectId, sessionId: input.sessionId, finalDecision: input.finalDecision ?? null, registry: createWorkflowRegistry(), repository: new SupabaseReconstructionRepository(), model: createConfiguredReconstructionModel() });
     return NextResponse.json(result, { status: 201 });
   } catch (error) {
     if (error instanceof z.ZodError || error instanceof ReconstructionInputError) return NextResponse.json({ error: error instanceof Error ? error.message : 'Invalid reconstruction request.' }, { status: 400 });

@@ -124,6 +124,8 @@ generated/                 Local development build workspaces only
 
 Tacit uses the OpenAI Responses API for the work that benefits from reasoning: reconstructing workflows, identifying contradictions, generating clarification questions, explaining failures, and producing constrained agent code. Model IDs are configured through the environment rather than embedded in product logic.
 
+For the hackathon deployment, Tacit can alternatively run those two model calls through a dedicated `codex_subscription` runner. The runner owns a ChatGPT/Codex device-code login and persistent Codex credential volume; the browser and Next.js application never receive OAuth tokens. This is a hackathon-only operator integration, not a production multi-tenant billing path.
+
 Deterministic code handles thresholds, comparisons, validation, matching, and state transitions. AI output is schema-validated before application logic can use it, and Codex only receives an SME-confirmed typed workflow specification—not raw customer recordings or unreviewed documents.
 
 Before a generated build is usable, Tacit records its source, prompts, dependency lock, model metadata, static-analysis result, generated-test result, repair attempts, and promotion state. The local runtime validates Python ASTs and import allowlists, then runs code in a short-lived Docker container with a read-only filesystem, default-deny network access, dropped capabilities, an unprivileged user, and bounded resources.
@@ -190,6 +192,10 @@ OPENAI_REASONING_MODEL=
 OPENAI_DEFAULT_MODEL=
 OPENAI_FAST_MODEL=
 OPENAI_CODEX_MODEL=
+LLM_BACKEND=openai_api
+CODEX_SUBSCRIPTION_RUNNER_URL=http://localhost:8100
+CODEX_SUBSCRIPTION_RUNNER_SECRET=
+CODEX_SUBSCRIPTION_MODEL=
 EVIDENCE_TRANSCRIPTION_MODEL=
 
 NEXT_PUBLIC_SUPABASE_URL=
@@ -204,6 +210,17 @@ PILOT_MAX_ACTIVE_PROJECTS_PER_ORGANIZATION=5
 ~~~
 
 Keep SUPABASE_SERVICE_ROLE_KEY and OpenAI keys server-side only.
+
+### Deploy with a Codex subscription
+
+Set `LLM_BACKEND=codex_subscription`, a private random `CODEX_SUBSCRIPTION_RUNNER_SECRET`, and a subscription-enabled `CODEX_SUBSCRIPTION_MODEL`. Start the stack, then complete the one-time device-code login from the private runner container:
+
+~~~bash
+docker compose up -d codex-runner
+docker compose exec codex-runner python -m app.codex_login
+~~~
+
+Open the printed URL, enter the printed code, and sign in with the dedicated hackathon ChatGPT account. Docker persists the runner's Codex login only in the `codex-subscription-auth` volume. Keep the runner off the public network, do not copy its `CODEX_HOME`, and give the same runner secret to the web service only. The runner reports a recoverable unavailable or login-required error instead of using demo data when Codex is disconnected or rate-limited.
 
 ### Prepare Supabase and the local sandbox
 

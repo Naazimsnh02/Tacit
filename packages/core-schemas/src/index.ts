@@ -109,6 +109,35 @@ export const workflowReconstructionSchema = z.object({
   automationCandidates: z.array(z.string().min(1)),
 });
 
+/**
+ * Responses API schema for the reconstruction contract. Keep runtime validation
+ * with `workflowReconstructionSchema`: the API constrains shape while Zod also
+ * checks durable evidence UUIDs and semantic bounds before persistence.
+ */
+export const workflowReconstructionJsonSchema = {
+  type: 'object', additionalProperties: false,
+  required: ['workflowObjective', 'inputs', 'steps', 'decisionPoints', 'rules', 'exceptions', 'contradictions', 'unknowns', 'approvalRequirements', 'automationCandidates'],
+  properties: {
+    workflowObjective: { type: 'string' },
+    inputs: { type: 'array', items: { type: 'string' } },
+    steps: { type: 'array', items: { type: 'object', additionalProperties: false, required: ['id', 'name', 'description', 'type', 'sequence', 'inputs', 'outputs', 'evidenceIds', 'confidence'], properties: {
+      id: { type: 'string' }, name: { type: 'string' }, description: { type: 'string' }, type: { type: 'string', enum: ['action', 'deterministic_rule', 'ai_judgment', 'human_decision', 'approval', 'escalation'] }, sequence: { type: 'integer' },
+      inputs: { type: 'array', items: { type: 'string' } }, outputs: { type: 'array', items: { type: 'string' } }, evidenceIds: { type: 'array', items: { type: 'string' } }, confidence: { type: 'number' },
+    } } },
+    decisionPoints: { type: 'array', items: { type: 'string' } },
+    rules: { type: 'array', items: { type: 'object', additionalProperties: false, required: ['id', 'name', 'condition', 'action', 'exceptions', 'confidence', 'evidenceIds', 'verificationStatus', 'riskLevel'], properties: {
+      id: { type: 'string' }, name: { type: 'string' }, condition: { type: 'string' }, action: { type: 'string' }, exceptions: { type: 'array', items: { type: 'string' } }, confidence: { type: 'number' }, evidenceIds: { type: 'array', items: { type: 'string' } }, verificationStatus: { type: 'string', enum: ['inferred', 'confirmed', 'unverified'] }, riskLevel: { type: 'string', enum: ['low', 'medium', 'high'] },
+    } } },
+    exceptions: { type: 'array', items: { type: 'string' } },
+    contradictions: { type: 'array', items: { type: 'object', additionalProperties: false, required: ['id', 'sourceA', 'sourceB', 'description', 'businessImpact', 'severity', 'evidenceIds', 'requiresClarification'], properties: {
+      id: { type: 'string' }, sourceA: { type: 'string' }, sourceB: { type: 'string' }, description: { type: 'string' }, businessImpact: { type: 'string' }, severity: { type: 'string', enum: ['low', 'medium', 'high'] }, evidenceIds: { type: 'array', items: { type: 'string' } }, requiresClarification: { type: 'boolean' },
+    } } },
+    unknowns: { type: 'array', items: { type: 'string' } },
+    approvalRequirements: { type: 'array', items: { type: 'string' } },
+    automationCandidates: { type: 'array', items: { type: 'string' } },
+  },
+} as const;
+
 export const decisionRuleStatusSchema = z.enum(['inferred', 'confirmed', 'rejected']);
 export const decisionRuleSchema = z.object({
   id: identifierSchema, workflowVersionId: identifierSchema, title: z.string().min(1),

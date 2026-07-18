@@ -42,7 +42,7 @@ export async function compileAgent(input: {
   if (!reconstruction.success) throw new AgentBuildInputError('The workflow version does not contain a valid confirmed workflow.');
   if (reconstruction.data.rules.some((rule) => rule.verificationStatus !== 'confirmed')) throw new AgentBuildInputError('Resolve and confirm every workflow rule before building an agent.');
   if (!await input.repository.hasWorkflowConfirmation({ workflowVersionId: version.id, projectId: version.projectId })) throw new AgentBuildInputError('An SME must confirm rules, contradictions, automation boundaries, and approval policies before building an agent.');
-  if (!input.model) throw new AgentBuildInputError('Codex compilation is unavailable until OPENAI_CODEX_MODEL is configured.');
+  if (!input.model) throw new AgentBuildInputError('Agent compilation is unavailable until the configured model provider is available.');
 
   const build = await input.repository.createBuild({ projectId: input.projectId, workflowVersionId: version.id, requestedBy: input.requestedBy ?? null });
   const progress = async (stage: string, message: string) => { await input.repository.saveLog({ agentBuildId: build.id, stage, message }); input.onProgress?.({ stage, message }); };

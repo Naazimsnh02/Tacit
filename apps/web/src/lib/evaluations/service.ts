@@ -1,5 +1,5 @@
 import {
-  evaluationMatchCategorySchema, testCaseSchema, type EvaluationMatchCategory, type TestCase,
+  evaluationMatchCategorySchema, impactMetricsSchema, testCaseSchema, type EvaluationMatchCategory, type ImpactMetrics, type TestCase,
 } from '@tacit/core-schemas';
 import type { WorkflowRegistry } from '@tacit/workflow-registry';
 
@@ -13,6 +13,8 @@ export interface EvaluationRepository {
     confidence: number | null; failureExplanation: string | null; suggestedNextStep: string | null;
   }): Promise<void>;
   completeRun(input: { testRunId: string; status: 'passed' | 'failed' }): Promise<void>;
+  getWorkflowSummary(workflowVersionId: string): Promise<{ stepCount: number; ruleCount: number } | null>;
+  saveImpactSnapshot(input: Omit<ImpactMetrics, 'id'>): Promise<void>;
 }
 
 export interface AgentExecutor {
@@ -67,11 +69,52 @@ export async function replayHistoricalCases(input: {
     }
     const metrics = calculateEvaluationMetrics(categories, confidences);
     await input.repository.completeRun({ testRunId: run.id, status: metrics.incorrectCases + metrics.executionFailures === 0 ? 'passed' : 'failed' });
+    const workflow = await input.repository.getWorkflowSummary(build.workflowVersionId);
+    await input.repository.saveImpactSnapshot(createReplayImpactSnapshot({
+      projectId: input.projectId, workflowVersionId: build.workflowVersionId, metrics,
+      stepCount: workflow?.stepCount ?? 0, ruleCount: workflow?.ruleCount ?? 0,
+    }));
     return { testRunId: run.id, metrics };
   } catch (error) {
     await input.repository.completeRun({ testRunId: run.id, status: 'failed' });
     throw error;
   }
+}
+
+/**
+ * Replay supplies observed quality measures. Time and step counts are clearly
+ * labelled estimates because production does not yet capture time-on-task.
+ */
+export function createReplayImpactSnapshot(input: {
+  projectId: string; workflowVersionId: string; metrics: EvaluationMetrics; stepCount: number; ruleCount: number;
+}): Omit<ImpactMetrics, 'id'> {
+  const safeCases = input.metrics.exactMatches + input.metrics.acceptableAlternatives + input.metrics.correctEscalations;
+  const estimatedManualMinutes = input.metrics.totalCases * 18;
+  const estimatedMinutesSaved = Number((safeCases * 15).toFixed(1));
+  const estimatedAutomatedMinutes = Number(Math.max(0, estimatedManualMinutes - estimatedMinutesSaved).toFixed(1));
+  const automatedSteps = Math.round(input.stepCount * (input.metrics.safeAutomationCoverage / 100));
+  return impactMetricsSchema.omit({ id: true }).parse({
+    projectId: input.projectId, workflowVersionId: input.workflowVersionId,
+    observedCases: input.metrics.totalCases, automationCoveragePercent: input.metrics.safeAutomationCoverage,
+    accuracyPercent: input.metrics.safeAutomationCoverage, estimatedMinutesSaved,
+    manualSteps: input.stepCount, automatedSteps, aiAssistedSteps: Math.round(input.stepCount * (input.metrics.humanReviewRate / 100)),
+    humanRequiredSteps: Math.max(0, input.stepCount - automatedSteps), manualHandlingMinutes: estimatedManualMinutes,
+    estimatedAutomatedMinutes, reviewRatePercent: input.metrics.humanReviewRate, rulesDiscovered: input.ruleCount,
+    undocumentedExceptions: 0,
+    sources: {
+      observedCases: 'observed', automationCoveragePercent: 'observed', accuracyPercent: 'observed', reviewRatePercent: 'observed',
+      estimatedMinutesSaved: 'estimated', manualSteps: 'estimated', automatedSteps: 'estimated', aiAssistedSteps: 'estimated',
+      humanRequiredSteps: 'estimated', manualHandlingMinutes: 'estimated', estimatedAutomatedMinutes: 'estimated',
+      rulesDiscovered: 'observed', undocumentedExceptions: 'estimated',
+    },
+    assumptions: [
+      'Historical replay outcomes are observed from the current promoted build.',
+      'Handling-time estimates use 18 manual minutes and 3 assisted minutes for each safely handled case.',
+      'Step allocation is estimated from the confirmed workflow specification and replay coverage.',
+      'Undocumented exceptions are not inferred from replay until they are explicitly recorded.',
+    ],
+    capturedAt: new Date().toISOString(),
+  });
 }
 
 function defaultAssessment(testCase: TestCase, outcome: Record<string, unknown> | null, executionError: string | null) {

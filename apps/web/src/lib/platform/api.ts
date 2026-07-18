@@ -72,7 +72,8 @@ export async function serviceRequest<T>(path: string, init: RequestInit = {}): P
     cache: 'no-store',
   });
   if (!response.ok) throw new ApiError(500, 'The request could not be completed.');
-  return response.status === 204 ? undefined as T : await response.json() as T;
+  const body = await response.text();
+  return body ? JSON.parse(body) as T : undefined as T;
 }
 
 export async function organizationRoleFor(actorId: string, organizationId: string): Promise<OrganizationRole | null> {

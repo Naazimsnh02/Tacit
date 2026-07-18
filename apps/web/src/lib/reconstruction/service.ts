@@ -60,17 +60,19 @@ export async function reconstructWorkflow(input: {
   let reconstruction: WorkflowReconstruction;
   let source: 'model' | 'seeded_fallback';
   if (input.model) {
-    let lastError: unknown;
+    let attemptPrompt = prompt;
     for (let attempt = 0; attempt < 2; attempt += 1) {
       try {
-        reconstruction = validateEvidenceCitations(workflowReconstructionSchema.parse(await input.model.reconstruct(prompt)), evidenceIds);
+        reconstruction = validateEvidenceCitations(workflowReconstructionSchema.parse(await input.model.reconstruct(attemptPrompt)), evidenceIds);
         source = 'model';
         return persist({ reconstruction, source, projectId: project.id, repository: input.repository });
-      } catch (error) {
-        lastError = error;
+      } catch {
+        attemptPrompt = `${prompt}\n\nYour prior response did not match the required JSON contract. Regenerate the complete object with every required field, including complete nested step and rule objects. Do not abbreviate fields or return prose.`;
       }
     }
-    throw new ReconstructionOutputError(`The workflow model returned an invalid reconstruction after one retry. ${lastError instanceof Error ? lastError.message : ''}`.trim());
+    // Schema details are useful in server diagnostics but too noisy for the
+    // recoverable UI state. The saved observation remains intact for retry.
+    throw new ReconstructionOutputError('The workflow model could not produce a complete workflow after one retry. Your observation is saved; retry the reconstruction.');
   }
   if (project.mode !== 'demo' || !workflowPack.reconstructionFallback) {
     throw new ReconstructionOutputError('Workflow reconstruction is unavailable until the configured model is available.');

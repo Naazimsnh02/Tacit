@@ -81,6 +81,16 @@ export interface EvaluationAssessment {
   readonly suggestedNextStep: string | null;
 }
 
+/** Pack-owned approval details for an explicitly supervised case execution. */
+export interface SupervisedApprovalRequest {
+  readonly reason: string;
+  readonly riskLevel: 'low' | 'medium' | 'high';
+  readonly requestedAction: string;
+  readonly agentRecommendation: string;
+  readonly confidence: number | null;
+  readonly appliedRuleIds: readonly string[];
+}
+
 export const workflowPackSeedSchema = z.object({
   project: projectSchema,
   documents: z.array(documentEvidenceSchema),
@@ -121,6 +131,14 @@ export interface WorkflowPack<Input extends z.ZodType, Outcome extends z.ZodType
   readonly evaluateCase?: (input: {
     readonly testCase: TestCase; readonly actualOutcome: Record<string, unknown> | null; readonly executionError: string | null;
   }) => EvaluationAssessment;
+  /**
+   * Maps a validated agent outcome to an approval request. This is invoked only
+   * by the explicit supervised-case route; historical replay never calls it.
+   */
+  readonly approvalRequestForOutcome?: (input: {
+    readonly caseInput: Record<string, unknown>; readonly outcome: Record<string, unknown>;
+    readonly evidenceIds: readonly string[];
+  }) => SupervisedApprovalRequest | null;
   readonly promptContext: string;
   /** A deterministic, pack-owned demo result when a model is not configured. */
   readonly reconstructionFallback?: (context: { readonly evidenceIds: readonly string[] }) => WorkflowReconstruction;

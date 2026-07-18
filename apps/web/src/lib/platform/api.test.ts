@@ -1,5 +1,17 @@
-import { describe, expect, it } from 'vitest';
-import { createProjectRequestSchema, mapProject, pilotProjectLimit, slugifyOrganizationName, updateProjectRequestSchema } from './api';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { createProjectRequestSchema, mapProject, pilotProjectLimit, serviceRequest, slugifyOrganizationName, updateProjectRequestSchema } from './api';
+
+const originalFetch = globalThis.fetch;
+const originalUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const originalAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+const originalServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+afterEach(() => {
+  globalThis.fetch = originalFetch;
+  process.env.NEXT_PUBLIC_SUPABASE_URL = originalUrl;
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = originalAnonKey;
+  process.env.SUPABASE_SERVICE_ROLE_KEY = originalServiceKey;
+});
 
 describe('production project API contracts', () => {
   it('accepts only generic project creation fields', () => {
@@ -22,5 +34,14 @@ describe('production project API contracts', () => {
     expect(pilotProjectLimit('8')).toBe(8);
     expect(pilotProjectLimit('0')).toBe(5);
     expect(pilotProjectLimit('unbounded')).toBe(5);
+  });
+
+  it('accepts successful Supabase writes with an empty response body', async () => {
+    process.env.NEXT_PUBLIC_SUPABASE_URL = 'https://example.supabase.co';
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = 'anon-key';
+    process.env.SUPABASE_SERVICE_ROLE_KEY = 'service-key';
+    globalThis.fetch = vi.fn().mockResolvedValue(new Response(null, { status: 201 }));
+
+    await expect(serviceRequest('organization_memberships', { method: 'POST', body: '[]' })).resolves.toBeUndefined();
   });
 });

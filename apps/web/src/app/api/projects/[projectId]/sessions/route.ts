@@ -12,7 +12,7 @@ function config() {
 class SupabaseObservationRepository implements ObservationRepository {
   private readonly connection = config();
   private async request(path: string, body: unknown) {
-    const response = await fetch(`${this.connection.url}/rest/v1/${path}`, { method: 'POST', headers: { apikey: this.connection.key, Authorization: `Bearer ${this.connection.key}`, 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    const response = await fetch(`${this.connection.url}/rest/v1/${path}`, { method: 'POST', headers: { apikey: this.connection.key, Authorization: `Bearer ${this.connection.key}`, 'Content-Type': 'application/json', Prefer: 'resolution=merge-duplicates' }, body: JSON.stringify(body) });
     if (!response.ok) throw new Error('Unable to save the observation.');
   }
   async saveSession(session: import('@tacit/core-schemas').ObservationSession) { await this.request('observation_sessions', [{ id: session.id, project_id: session.projectId, status: session.status, started_at: session.startedAt, completed_at: session.completedAt, narration: session.narration, created_at: session.createdAt }]); }

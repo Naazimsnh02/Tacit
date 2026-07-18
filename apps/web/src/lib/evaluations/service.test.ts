@@ -7,11 +7,14 @@ const projectId = invoiceExceptionSeedData.project.id;
 class Repository implements EvaluationRepository {
   results: Parameters<EvaluationRepository['saveResult']>[0][] = [];
   completed: string | null = null;
+  snapshots: Parameters<EvaluationRepository['saveImpactSnapshot']>[0][] = [];
   async getBuild() { return { id: '55555555-5555-4555-8555-555555555555', workflowVersionId: '66666666-6666-4666-8666-666666666666', workflowType: 'invoice_exception' }; }
   async getTestCases() { return invoiceExceptionSeedData.testCases; }
   async createRun() { return { id: '77777777-7777-4777-8777-777777777777' }; }
   async saveResult(input: Parameters<EvaluationRepository['saveResult']>[0]) { this.results.push(input); }
   async completeRun(input: { status: 'passed' | 'failed' }) { this.completed = input.status; }
+  async getWorkflowSummary() { return { stepCount: 6, ruleCount: 4 }; }
+  async saveImpactSnapshot(input: Parameters<EvaluationRepository['saveImpactSnapshot']>[0]) { this.snapshots.push(input); }
 }
 
 describe('historical replay evaluation', () => {
@@ -26,6 +29,8 @@ describe('historical replay evaluation', () => {
     expect(repository.results.some((item) => item.matchCategory === 'incorrect')).toBe(true);
     expect(repository.results.find((item) => item.testCaseId.endsWith('006'))?.appliedRuleIds).toContain('delivery_confirmation_required');
     expect(repository.completed).toBe('failed');
+    expect(repository.snapshots[0]).toMatchObject({ observedCases: 10, workflowVersionId: '66666666-6666-4666-8666-666666666666' });
+    expect(repository.snapshots[0]?.sources.automationCoveragePercent).toBe('observed');
   });
 
   it('calculates evaluation metrics without workflow-specific fields', () => {

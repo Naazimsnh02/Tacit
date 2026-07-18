@@ -4,7 +4,7 @@ import { z } from 'zod';
 export interface ApprovalRepository {
   list(projectId: string): Promise<readonly ApprovalRequest[]>;
   get(id: string): Promise<ApprovalRequest | null>;
-  saveRequest(input: Omit<ApprovalRequest, 'id'>): Promise<ApprovalRequest>;
+  saveRequest(input: Omit<ApprovalRequest, 'id'>, requestedBy?: string): Promise<ApprovalRequest>;
   saveAction(input: Omit<ApprovalAction, 'id' | 'actedAt'>): Promise<ApprovalAction>;
   updateStatus(id: string, status: ApprovalRequest['status']): Promise<void>;
   latestImpact(projectId: string): Promise<ImpactMetrics | null>;

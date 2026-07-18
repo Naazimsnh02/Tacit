@@ -19,6 +19,8 @@ The planned private `tacit-artifacts` bucket reserves paths as `<organization-id
 
 Production compilation requires `OPENAI_CODEX_MODEL`. Tacit sends Codex only an SME-confirmed, typed workflow specification; raw uploads and video are excluded. Each build records immutable source, prompts, dependency lock, model metadata, static-analysis output, generated-test output, and attempt history in the tenant-scoped artifact bucket. A failed test or static gate receives one repair attempt, then produces a repair proposal without changing the confirmed workflow. A passing build remains promotion-pending until an authorized member explicitly promotes it.
 
+For hackathon deployments only, `LLM_BACKEND=codex_subscription` routes workflow reconstruction and compilation through the isolated `codex-runner` service. Its ChatGPT device-code login is stored only inside its private `CODEX_HOME` volume, and the web application authenticates to it with `CODEX_SUBSCRIPTION_RUNNER_SECRET`. This mode is intentionally not a production multi-tenant billing or user-credential model.
+
 ## Operations ownership
 
 Staging and production use separate Supabase projects and separate environment secrets. Only server-side services receive `SUPABASE_SERVICE_ROLE_KEY` and OpenAI keys; browser code receives only Supabase URL and publishable/anon key. The service owner is responsible for backup verification, secret rotation, and error-reporting configuration before production launch.

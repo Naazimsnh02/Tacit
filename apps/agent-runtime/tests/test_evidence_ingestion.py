@@ -1,4 +1,6 @@
+import json
 from pathlib import Path
+from urllib.request import Request
 
 from app.evidence_ingestion import ClaimedJob, EvidenceIngestionWorker
 
@@ -100,3 +102,55 @@ def test_empty_queue_does_not_create_temp_files(monkeypatch, tmp_path: Path) -> 
     monkeypatch.setattr(evidence_worker, "_claim", lambda: None)
     assert evidence_worker.run_once() is False
     assert list(tmp_path.iterdir()) == []
+
+
+def test_modal_transcription_uses_private_proxy_headers(monkeypatch, tmp_path: Path) -> None:
+    evidence_worker = EvidenceIngestionWorker(
+        {
+            "NEXT_PUBLIC_SUPABASE_URL": "https://example.supabase.co",
+            "SUPABASE_SERVICE_ROLE_KEY": "service",
+            "EVIDENCE_TRANSCRIPTION_PROVIDER": "modal",
+            "EVIDENCE_MODAL_TRANSCRIPTION_URL": "https://example.modal.run/",
+            "EVIDENCE_MODAL_PROXY_AUTH_KEY": "proxy-key",
+            "EVIDENCE_MODAL_PROXY_AUTH_SECRET": "proxy-secret",
+        }
+    )
+    source = tmp_path / "review.mp3"
+    source.write_bytes(b"audio")
+    requests: list[Request] = []
+
+    class Response:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_):
+            return False
+
+        def read(self) -> bytes:
+            return json.dumps({"text": "Reviewed invoice exception"}).encode()
+
+    def fake_urlopen(request: Request, timeout: int):
+        requests.append(request)
+        assert timeout == 150
+        return Response()
+
+    monkeypatch.setattr("app.evidence_ingestion.urlopen", fake_urlopen)
+
+    assert evidence_worker._transcribe(source, "modal") == "Reviewed invoice exception"
+    assert requests[0].full_url == "https://example.modal.run/transcribe"
+    assert requests[0].get_header("Modal-key") == "proxy-key"
+    assert requests[0].get_header("Modal-secret") == "proxy-secret"
+
+
+def test_video_can_select_a_different_transcription_provider() -> None:
+    evidence_worker = EvidenceIngestionWorker(
+        {
+            "NEXT_PUBLIC_SUPABASE_URL": "https://example.supabase.co",
+            "SUPABASE_SERVICE_ROLE_KEY": "service",
+            "EVIDENCE_TRANSCRIPTION_PROVIDER": "openai",
+            "EVIDENCE_VIDEO_TRANSCRIPTION_PROVIDER": "modal",
+        }
+    )
+
+    assert evidence_worker.audio_transcription_provider == "openai"
+    assert evidence_worker.video_transcription_provider == "modal"

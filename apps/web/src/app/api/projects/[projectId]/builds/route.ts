@@ -1,6 +1,6 @@
 import { compileAgent, AgentBuildInputError, AgentBuildOutputError } from '../../../../../lib/agent-builds/service';
 import { localAgentBuildWorkspace, supabaseAgentArtifactStore } from '../../../../../lib/agent-builds/file-writer';
-import { createOpenAiCodexModel } from '../../../../../lib/agent-builds/openai-codex-model';
+import { createConfiguredAgentBuildModel } from '../../../../../lib/agent-builds/openai-codex-model';
 import { RuntimeAgentBuildRunner } from '../../../../../lib/agent-builds/runtime-client';
 import { SupabaseAgentBuildRepository } from '../../../../../lib/agent-builds/supabase-repository';
 import { createWorkflowRegistry } from '../../../../../lib/workflow-packs';
@@ -21,7 +21,7 @@ export async function POST(request: Request, context: { params: Promise<{ projec
         const [project] = await serviceRequest<Array<{ organization_id: string; mode: string }>>(`projects?id=eq.${encodeURIComponent(projectId)}&mode=eq.production&select=organization_id,mode&limit=1`);
         if (!project) throw new ApiError(404, 'Production project not found.');
         if (!canWrite(await organizationRoleFor(actor.id, project.organization_id))) throw new ApiError(403, 'You do not have permission to compile this workflow.');
-        const result = await compileAgent({ projectId, workflowVersionId: payload.workflowVersionId, requestedBy: actor.id, registry: createWorkflowRegistry(), repository: new SupabaseAgentBuildRepository(), workspace: localAgentBuildWorkspace, artifactStore: supabaseAgentArtifactStore, runner: new RuntimeAgentBuildRunner(), model: createOpenAiCodexModel(), onProgress: (progress) => send('progress', progress) });
+        const result = await compileAgent({ projectId, workflowVersionId: payload.workflowVersionId, requestedBy: actor.id, registry: createWorkflowRegistry(), repository: new SupabaseAgentBuildRepository(), workspace: localAgentBuildWorkspace, artifactStore: supabaseAgentArtifactStore, runner: new RuntimeAgentBuildRunner(), model: createConfiguredAgentBuildModel(), onProgress: (progress) => send('progress', progress) });
         send('complete', result);
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Unable to compile the agent.';

@@ -16,3 +16,4 @@ __pycache__/
 *.tsbuildinfo
 generated/*/*/
 !generated/.gitkeep
+evidence-packs/

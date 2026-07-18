@@ -1,4 +1,5 @@
 import { codexGenerationSchema, type CodexGeneration, type CodexModel } from './service';
+import { completeWithCodexSubscription, isCodexSubscriptionBackend } from '../llm/codex-subscription';
 
 interface ResponsesPayload {
   readonly id?: unknown;
@@ -17,6 +18,23 @@ const responseSchema = {
     summary: { type: 'string', minLength: 1, maxLength: 4000 },
   },
 };
+
+export function createConfiguredAgentBuildModel(): CodexModel | undefined {
+  if (isCodexSubscriptionBackend()) {
+    return {
+      async generate(prompt): Promise<CodexGeneration> {
+        const response = await completeWithCodexSubscription({
+          purpose: 'agent_compilation',
+          prompt: `${prompt}\n\nReturn exactly one JSON object with no additional properties: {"agentSource":"<Python source>","testSource":"<pytest source>","summary":"<short summary>"}. JSON-escape all newlines and quotes inside source strings. Do not call tools or include Markdown.`,
+        });
+        const parsed = codexGenerationSchema.safeParse(JSON.parse(response.output));
+        if (!parsed.success) throw new Error('Codex subscription runner returned an invalid generated-artifact contract.');
+        return { ...parsed.data, responseId: response.responseId, model: response.model, usage: response.usage };
+      },
+    };
+  }
+  return createOpenAiCodexModel();
+}
 
 /** Calls the configured Codex-capable model through Responses with a strict output contract. */
 export function createOpenAiCodexModel(): CodexModel | undefined {

@@ -65,6 +65,7 @@ export const invoiceExceptionWorkflowPack = defineWorkflowPack({
   approvalPolicy: { type: 'value_threshold', thresholdSource: 'approval_matrix' },
   evaluationDefinition: { fixtureSet: 'invoice-exception-historical-cases' },
   evaluateCase: assessInvoiceEvaluationCase,
+  approvalRequestForOutcome: createInvoiceApprovalRequest,
   promptContext: 'Review invoice exceptions using workflow-specific evidence and policy.',
   reconstructionFallback: createInvoiceReconstructionFallback,
   resolveClarificationAnswer: resolveInvoiceClarificationAnswer,
@@ -98,4 +99,21 @@ function inferInvoiceRuleIds(input: Record<string, unknown>): string[] {
   if (typeof input.invoiceValue === 'number' && input.invoiceValue > 500000) rules.push('manager_threshold');
   if (rules.length === 0) rules.push('quantity_tolerance');
   return rules;
+}
+
+function createInvoiceApprovalRequest(input: {
+  readonly caseInput: Record<string, unknown>; readonly outcome: Record<string, unknown>;
+  readonly evidenceIds: readonly string[];
+}) {
+  if (input.outcome.decision !== 'human_review') return null;
+  const invoiceValue = typeof input.caseInput.invoiceValue === 'number' ? input.caseInput.invoiceValue : 0;
+  const duplicateInvoice = input.caseInput.duplicateInvoice === true;
+  return {
+    reason: typeof input.outcome.reason === 'string' ? input.outcome.reason : 'The generated agent requires human review.',
+    riskLevel: duplicateInvoice || invoiceValue > 500_000 ? 'high' as const : 'medium' as const,
+    requestedAction: 'Review invoice exception recommendation',
+    agentRecommendation: 'Human review required before an invoice exception can proceed.',
+    confidence: 0.68,
+    appliedRuleIds: inferInvoiceRuleIds(input.caseInput),
+  };
 }

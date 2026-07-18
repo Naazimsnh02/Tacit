@@ -15,4 +15,19 @@ describe('getServerEnvironment', () => {
   it('rejects missing required values', () => {
     expect(() => getServerEnvironment({ ...validEnvironment, OPENAI_API_KEY: '' })).toThrow();
   });
+
+  it('accepts a configured Codex subscription runner without API billing credentials', () => {
+    expect(getServerEnvironment({
+      ...validEnvironment,
+      LLM_BACKEND: 'codex_subscription',
+      OPENAI_API_KEY: undefined,
+      OPENAI_REASONING_MODEL: undefined,
+      OPENAI_DEFAULT_MODEL: undefined,
+      OPENAI_FAST_MODEL: undefined,
+      OPENAI_CODEX_MODEL: undefined,
+      CODEX_SUBSCRIPTION_RUNNER_URL: 'http://codex-runner:8100',
+      CODEX_SUBSCRIPTION_RUNNER_SECRET: 'a'.repeat(32),
+      CODEX_SUBSCRIPTION_MODEL: 'gpt-5.4',
+    }).LLM_BACKEND).toBe('codex_subscription');
+  });
 });

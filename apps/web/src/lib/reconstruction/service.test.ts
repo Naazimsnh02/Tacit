@@ -41,8 +41,11 @@ describe('reconstructWorkflow', () => {
   it('retries one invalid model response without persisting corrupt state', async () => {
     const store = repository();
     let calls = 0;
-    await expect(reconstructWorkflow({ projectId, sessionId, finalDecision: 'approve', registry: registry(), repository: store, model: { async reconstruct(): Promise<unknown> { calls += 1; return { invalid: true }; } } })).rejects.toBeInstanceOf(ReconstructionOutputError);
+    const prompts: string[] = [];
+    await expect(reconstructWorkflow({ projectId, sessionId, finalDecision: 'approve', registry: registry(), repository: store, model: { async reconstruct(prompt): Promise<unknown> { calls += 1; prompts.push(prompt); return { invalid: true }; } } })).rejects.toBeInstanceOf(ReconstructionOutputError);
     expect(calls).toBe(2);
+    expect(prompts[0]).toContain('workflowObjective');
+    expect(prompts[1]).toContain('prior response did not match');
     expect(store.saved).toBe(0);
     expect(store.rulesSaved).toBe(0);
   });

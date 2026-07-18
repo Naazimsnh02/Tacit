@@ -11,7 +11,7 @@ import uuid
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
-from urllib.error import HTTPError
+from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
 
@@ -47,6 +47,16 @@ class EvidenceIngestionWorker:
         self.clamav_port = int(self.env.get("CLAMAV_PORT", "3310"))
         self.transcription_model = self.env.get("EVIDENCE_TRANSCRIPTION_MODEL")
         self.openai_key = self.env.get("OPENAI_API_KEY")
+        default_provider = (self.env.get("EVIDENCE_TRANSCRIPTION_PROVIDER") or "openai").lower()
+        self.audio_transcription_provider = (
+            self.env.get("EVIDENCE_AUDIO_TRANSCRIPTION_PROVIDER") or default_provider
+        ).lower()
+        self.video_transcription_provider = (
+            self.env.get("EVIDENCE_VIDEO_TRANSCRIPTION_PROVIDER") or default_provider
+        ).lower()
+        self.modal_transcription_url = self.env.get("EVIDENCE_MODAL_TRANSCRIPTION_URL")
+        self.modal_proxy_auth_key = self.env.get("EVIDENCE_MODAL_PROXY_AUTH_KEY")
+        self.modal_proxy_auth_secret = self.env.get("EVIDENCE_MODAL_PROXY_AUTH_SECRET")
 
     def _required(self, name: str) -> str:
         value = self.env.get(name)
@@ -204,7 +214,9 @@ class EvidenceIngestionWorker:
         if job.media_type.startswith("image/"):
             return self._extract_image(source, None, None)
         if job.media_type.startswith("audio/"):
-            return self._extract_audio(source, 0, self._duration_ms(source))
+            return self._extract_audio(
+                source, 0, self._duration_ms(source), self.audio_transcription_provider
+            )
         if job.media_type.startswith("video/"):
             return self._extract_video(source, directory)
         raise IngestionError("No extractor is configured for this validated media type.")
@@ -321,8 +333,10 @@ class EvidenceIngestionWorker:
             else []
         )
 
-    def _extract_audio(self, source: Path, start_ms: int, end_ms: int) -> list[dict[str, Any]]:
-        transcript = self._transcribe(source)
+    def _extract_audio(
+        self, source: Path, start_ms: int, end_ms: int, provider: str
+    ) -> list[dict[str, Any]]:
+        transcript = self._transcribe(source, provider)
         return (
             [
                 {
@@ -350,7 +364,7 @@ class EvidenceIngestionWorker:
         self._run_command(
             ["ffmpeg", "-y", "-i", str(source), "-vf", "fps=1/30", str(frames / "frame-%03d.png")]
         )
-        result = self._extract_audio(audio, 0, duration)
+        result = self._extract_audio(audio, 0, duration, self.video_transcription_provider)
         for index, frame in enumerate(sorted(frames.glob("*.png"))):
             result.extend(
                 self._extract_image(frame, index * 30_000, min((index + 1) * 30_000, duration))
@@ -382,7 +396,16 @@ class EvidenceIngestionWorker:
         except (OSError, subprocess.CalledProcessError, subprocess.TimeoutExpired) as error:
             raise IngestionError("Media processing failed safely.") from error
 
-    def _transcribe(self, source: Path) -> str:
+    def _transcribe(self, source: Path, provider: str) -> str:
+        if provider == "openai":
+            return self._transcribe_openai(source)
+        if provider == "modal":
+            return self._transcribe_modal(source)
+        raise IngestionError(
+            "Evidence transcription provider must be configured as 'openai' or 'modal'."
+        )
+
+    def _transcribe_openai(self, source: Path) -> str:
         if not self.openai_key or not self.transcription_model:
             raise IngestionError("Transcription is not configured for evidence ingestion.")
         boundary = f"----Tacit{uuid.uuid4().hex}"
@@ -417,8 +440,30 @@ class EvidenceIngestionWorker:
         try:
             with urlopen(request, timeout=120) as response:
                 return str(json.loads(response.read().decode("utf-8")).get("text", "")).strip()
-        except HTTPError as error:
-            raise IngestionError(f"Transcription request failed ({error.code}).") from error
+        except (HTTPError, URLError) as error:
+            raise IngestionError("OpenAI transcription request failed safely.") from error
+
+    def _transcribe_modal(self, source: Path) -> str:
+        if not (
+            self.modal_transcription_url
+            and self.modal_proxy_auth_key
+            and self.modal_proxy_auth_secret
+        ):
+            raise IngestionError("Modal transcription is not configured for evidence ingestion.")
+        request = Request(
+            self.modal_transcription_url.rstrip("/") + "/transcribe",
+            data=source.read_bytes(),
+            method="POST",
+        )
+        request.add_header("Content-Type", "application/octet-stream")
+        request.add_header("Modal-Key", self.modal_proxy_auth_key)
+        request.add_header("Modal-Secret", self.modal_proxy_auth_secret)
+        try:
+            with urlopen(request, timeout=150) as response:
+                body = json.loads(response.read().decode("utf-8"))
+                return str(body.get("text", "")).strip()
+        except (HTTPError, URLError, json.JSONDecodeError) as error:
+            raise IngestionError("Modal transcription request failed safely.") from error
 
     def _update_artifact(self, artifact_id: str, value: dict[str, Any]) -> None:
         value["updated_at"] = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())

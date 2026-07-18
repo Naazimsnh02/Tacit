@@ -8,7 +8,8 @@ Tacit Phase 6 launches Invoice Exception Review as a supervised pilot. It never 
 2. Upload the SOP and review recording with processing consent.
 3. Wait for clean, extracted evidence; retry only failed intake jobs.
 4. Record evidence-linked SME observations, resolve clarifications, and confirm the workflow.
-5. Review the generated build, promote a passed build, replay labelled cases, then use the approval queue for high-risk recommendations.
+5. Review the generated build and promote a passed build. Replay labelled cases to persist observed quality metrics and a clearly labelled impact snapshot.
+6. Explicitly run an evidence-linked supervised case for a high-risk recommendation. A workflow-pack human-review outcome creates an approval request; replay itself never creates approval work.
 
 The default cap is five active production projects per organization. Set `PILOT_MAX_ACTIVE_PROJECTS_PER_ORGANIZATION` to a whole number from 1 to 100 before deployment. Archive a project or contact support when the cap is reached.
 

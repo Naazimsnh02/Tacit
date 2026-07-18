@@ -4,7 +4,7 @@ from uuid import UUID
 from fastapi.testclient import TestClient
 
 from app.main import app, runtime_service
-from app.runtime import ContainerLimits, ProcessReport, RuntimeService, create_container_command
+from app.runtime import ContainerLimits, DockerContainerRunner, ProcessReport, RuntimeService, create_container_command
 
 
 BUILD_ID = UUID("55555555-5555-4555-8555-555555555555")
@@ -67,6 +67,19 @@ def test_prohibited_imports_calls_and_filesystem_access_are_rejected(tmp_path: P
     assert any("call to 'open' is not allowed" in error for error in report.errors)
 
 
+def test_generated_agent_requires_the_replay_entrypoint(tmp_path: Path) -> None:
+    write_build(
+        tmp_path,
+        "def decide(payload):\n    return {}\n",
+        "from agent import decide\n\ndef test_agent():\n    assert decide({}) == {}\n",
+    )
+
+    report = RuntimeService(tmp_path).validate(BUILD_ID)
+
+    assert not report.valid
+    assert "agent.py: missing required entrypoint 'def evaluate(payload)'" in report.errors
+
+
 def test_container_command_enforces_isolation_limits(tmp_path: Path) -> None:
     command = create_container_command(
         tmp_path, ["python", "-B", "-m", "pytest"], "sandbox@sha256:test", "tacit-agent-test", ContainerLimits(),
@@ -81,6 +94,32 @@ def test_container_command_enforces_isolation_limits(tmp_path: Path) -> None:
     assert command[command.index("--pids-limit") + 1] == "64"
     assert command[command.index("--mount") + 1].endswith("dst=/workspace,readonly")
     assert command[command.index("--user") + 1] == "65532:65532"
+
+
+def test_container_command_attaches_standard_input_only_when_execution_requires_it(tmp_path: Path) -> None:
+    command = create_container_command(tmp_path, ["python", "-B", "-c", "pass"], "sandbox@sha256:test", "tacit-agent-test", interactive=True)
+
+    assert "-i" in command
+
+
+def test_docker_runner_translates_generated_directory_to_configured_host_mount(tmp_path: Path, monkeypatch) -> None:
+    generated_root = tmp_path / "generated"
+    build_directory = generated_root / "organization" / "project" / "build"
+    monkeypatch.setenv("TACIT_GENERATED_HOST_ROOT", "/host/generated")
+
+    runner = DockerContainerRunner("sandbox@sha256:test", generated_root=generated_root)
+
+    assert runner._host_visible_directory(build_directory) == Path("/host/generated/organization/project/build")
+
+
+def test_docker_runner_preserves_windows_host_mount_path(tmp_path: Path, monkeypatch) -> None:
+    generated_root = tmp_path / "generated"
+    build_directory = generated_root / "organization" / "project" / "build"
+    monkeypatch.setenv("TACIT_GENERATED_HOST_ROOT", r"C:\Users\naazi\Tacit\generated")
+
+    runner = DockerContainerRunner("sandbox@sha256:test", generated_root=generated_root)
+
+    assert runner._host_visible_directory(build_directory) == "C:\\Users\\naazi\\Tacit\\generated/organization/project/build"
 
 
 def test_runtime_reports_container_timeout(tmp_path: Path) -> None:

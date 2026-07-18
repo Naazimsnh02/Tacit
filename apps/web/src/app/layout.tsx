@@ -3,7 +3,7 @@ import type { ReactNode } from 'react';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'Tacit — Turn expert work into working software',
+  title: 'Tacit: Turn expert work into trusted AI agents',
   description: 'Tacit turns expert evidence and judgment into confirmed workflows and tested, reviewable AI agents.',
 };
 
