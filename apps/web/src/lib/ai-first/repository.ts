@@ -36,7 +36,7 @@ export async function enqueueUnderstandingJobs(projectId: string, actorId: strin
   const key = evidenceIds.join(':');
   const packageKey = `package:${key}`;
   // Same extraction set means the same knowledge-transfer package. Never re-queue
-  // a successful package — that is what caused expensive restarts when users
+  // a successful package, as that caused expensive restarts when users
   // re-opened Sources / Understand after a prior run.
   const existingPackage = await serviceRequest<Row[]>(
     `platform_jobs?project_id=eq.${encodeURIComponent(projectId)}&kind=eq.package_synthesis&idempotency_key=eq.${encodeURIComponent(packageKey)}&select=id,status&order=created_at.desc&limit=1`,

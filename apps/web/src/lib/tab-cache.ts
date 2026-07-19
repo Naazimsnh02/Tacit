@@ -3,7 +3,7 @@
 const isClient = typeof window !== 'undefined';
 
 // Client-side in-memory cache to handle fast client-side/SPA transitions
-const memoryCache: Record<string, any> = {};
+const memoryCache: Record<string, unknown> = {};
 
 export const tabCache = {
   /**

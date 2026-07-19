@@ -37,7 +37,7 @@ export function EvaluationDashboard({ projectId }: { readonly projectId: string 
     }
     const cacheKeyCases = `${projectId}/test-cases`;
     if (!isBackground) {
-      const cached = tabCache.get<{ count: number; cases: any[] }>(cacheKeyCases);
+      const cached = tabCache.get<{ count: number; cases: { id: string; label: string }[] }>(cacheKeyCases);
       if (cached) {
         setCaseCount(cached.count);
         setCases(cached.cases);
@@ -68,7 +68,7 @@ export function EvaluationDashboard({ projectId }: { readonly projectId: string 
 
   useEffect(() => {
     const cacheKeyPlan = `${projectId}/test-plan`;
-    const cachedPlan = tabCache.get<{ tests: any[] }>(cacheKeyPlan);
+    const cachedPlan = tabCache.get<{ tests: { label: string; category: string; expected: string }[] }>(cacheKeyPlan);
     if (cachedPlan) {
       setPlannedTests(cachedPlan.tests ?? []);
     }

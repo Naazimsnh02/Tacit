@@ -21,7 +21,7 @@ function queueMessage(status: QueueStatus): string {
     return 'This exact knowledge transfer package is already interpreted. Add or replace a source to run a new version.';
   }
   if (status === 'in_progress') {
-    return 'Interpretation is already running for this package. Results will appear here as jobs finish — no new run was started.';
+    return 'Interpretation is already running for this package. Results will appear here as jobs finish; no new run was started.';
   }
   return 'Tacit is interpreting sources, extracting process structure, linking connections, and synthesizing the knowledge-transfer package.';
 }

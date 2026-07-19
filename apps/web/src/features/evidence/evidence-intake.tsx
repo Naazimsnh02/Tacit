@@ -161,7 +161,7 @@ export function EvidenceIntake({ projectId }: { readonly projectId: string }) {
   async function understandProcess() {
     if (!token || !canUnderstand) return;
     setUnderstanding(true);
-    // Navigate only — Understand page resumes existing jobs and does not re-queue an unchanged package.
+    // Navigate only: the Understand page resumes existing jobs and does not re-queue an unchanged package.
     window.location.assign(`/projects/${projectId}/understand`);
   }
 
@@ -207,7 +207,7 @@ export function EvidenceIntake({ projectId }: { readonly projectId: string }) {
     {hasUnderstanding ? (
       <p className="notice" role="status">
         {intelligenceProcessing
-          ? 'Source interpretation is already in progress. Opening Understand resumes that run — it does not start from scratch unless you add or replace a source.'
+          ? 'Source interpretation is already in progress. Opening Understand resumes that run; it does not start from scratch unless you add or replace a source.'
           : `Source interpretation already has ${insightCount} insight${insightCount === 1 ? '' : 's'}. Opening Understand shows the results; re-runs only happen if the extraction set changes.`}
       </p>
     ) : null}
