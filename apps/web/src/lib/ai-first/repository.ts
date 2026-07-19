@@ -25,22 +25,71 @@ export async function listSourceIntelligence(projectId: string): Promise<{ insig
   const [insights, relationships, jobs] = await Promise.all([
     serviceRequest<Row[]>(`evidence_insights?project_id=eq.${encodeURIComponent(projectId)}&select=*&order=created_at.desc`),
     serviceRequest<Row[]>(`evidence_relationships?project_id=eq.${encodeURIComponent(projectId)}&select=*&order=created_at.desc`),
-    serviceRequest<Row[]>(`platform_jobs?project_id=eq.${encodeURIComponent(projectId)}&kind=in.(source_interpretation,cross_source_understanding)&select=id,kind,status,error_message,created_at,completed_at&order=created_at.desc`),
+    serviceRequest<Row[]>(`platform_jobs?project_id=eq.${encodeURIComponent(projectId)}&kind=in.(source_interpretation,cross_source_understanding,package_synthesis)&select=id,kind,status,error_message,created_at,completed_at&order=created_at.desc`),
   ]);
   return { insights: insights.map(insight), relationships: relationships.map(relationship), jobs };
 }
 
-export async function enqueueUnderstandingJobs(projectId: string, actorId: string): Promise<'queued' | 'already_processed'> {
+export async function enqueueUnderstandingJobs(projectId: string, actorId: string): Promise<'queued' | 'already_processed' | 'in_progress'> {
   const evidenceIds = [...await projectEvidenceIds(projectId)].sort();
   if (!evidenceIds.length) throw new AiFirstRepositoryError('Add at least one clean, processed source before starting source intelligence.');
   const key = evidenceIds.join(':');
-  const existing = await serviceRequest<Row[]>(`platform_jobs?project_id=eq.${encodeURIComponent(projectId)}&kind=eq.cross_source_understanding&idempotency_key=eq.${encodeURIComponent(key)}&select=id&limit=1`);
-  if (existing.length) return 'already_processed';
+  const packageKey = `package:${key}`;
+  // Same extraction set means the same knowledge-transfer package. Never re-queue
+  // a successful package — that is what caused expensive restarts when users
+  // re-opened Sources / Understand after a prior run.
+  const existingPackage = await serviceRequest<Row[]>(
+    `platform_jobs?project_id=eq.${encodeURIComponent(projectId)}&kind=eq.package_synthesis&idempotency_key=eq.${encodeURIComponent(packageKey)}&select=id,status&order=created_at.desc&limit=1`,
+  );
+  if (existingPackage[0]) {
+    const status = String(existingPackage[0].status);
+    if (status === 'queued' || status === 'running') return 'in_progress';
+    if (status === 'succeeded') return 'already_processed';
+    await requeuePlatformJob(String(existingPackage[0].id));
+    return 'queued';
+  }
+  const activeJobs = await serviceRequest<Row[]>(
+    `platform_jobs?project_id=eq.${encodeURIComponent(projectId)}&kind=in.(source_interpretation,cross_source_understanding,package_synthesis)&status=in.(queued,running)&select=id,kind&limit=5`,
+  );
+  if (activeJobs.length) return 'in_progress';
+
+  // Upgrade path: older packages finished source+cross without package synthesis.
+  // Enqueue only the synthesis stage so existing work is reused.
+  const existingCross = await serviceRequest<Row[]>(
+    `platform_jobs?project_id=eq.${encodeURIComponent(projectId)}&kind=eq.cross_source_understanding&idempotency_key=eq.${encodeURIComponent(key)}&select=id,status&order=created_at.desc&limit=1`,
+  );
+  if (existingCross[0] && String(existingCross[0].status) === 'succeeded') {
+    await serviceRequest('platform_jobs', {
+      method: 'POST',
+      body: JSON.stringify([
+        { project_id: projectId, kind: 'package_synthesis', payload: { evidenceIds, requestedBy: actorId }, idempotency_key: packageKey },
+      ]),
+    });
+    return 'queued';
+  }
+
   await serviceRequest('platform_jobs', { method: 'POST', body: JSON.stringify([
     { project_id: projectId, kind: 'source_interpretation', payload: { evidenceIds, requestedBy: actorId }, idempotency_key: `source:${key}` },
     { project_id: projectId, kind: 'cross_source_understanding', payload: { evidenceIds, requestedBy: actorId }, idempotency_key: key },
+    { project_id: projectId, kind: 'package_synthesis', payload: { evidenceIds, requestedBy: actorId }, idempotency_key: packageKey },
   ]) });
   return 'queued';
+}
+
+async function requeuePlatformJob(jobId: string): Promise<void> {
+  const now = new Date().toISOString();
+  await serviceRequest(`platform_jobs?id=eq.${encodeURIComponent(jobId)}`, {
+    method: 'PATCH',
+    body: JSON.stringify({
+      status: 'queued',
+      available_at: now,
+      attempts: 0,
+      error_message: null,
+      completed_at: null,
+      started_at: null,
+      updated_at: now,
+    }),
+  });
 }
 
 export async function createProposal(input: { projectId: string; workflowVersionId: string; requestedChange: string; patch: unknown; affectedRuleIds: string[]; impact: Record<string, unknown>; riskLevel: 'low' | 'medium' | 'high'; actorId: string }): Promise<WorkflowChangeProposal> {

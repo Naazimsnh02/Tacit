@@ -4,6 +4,7 @@ import type { WorkflowEvent } from '@tacit/core-schemas';
 import type { WorkspaceActionDefinition } from '@tacit/workflow-sdk';
 import { useMemo, useState } from 'react';
 import { eventRelevantValues, semanticTimelineItems, timelineItems, type TimelineItem } from './observation-timeline';
+import { CustomSelect } from '../ui/custom-select';
 
 interface EvidenceOption { readonly id: string; readonly title: string; }
 
@@ -33,10 +34,24 @@ export function ObservationTimelineView({ events, actions, evidence, narration }
 
   return <section className="split" style={{ marginTop: 16, gridTemplateColumns: selectedEvent ? undefined : '1fr' }}>
     <Panel title="Observation timeline">
-      <div className="tabs">
+      <div className="tabs" style={{ marginBottom: 24 }}>
         <button className="tab" onClick={() => setView('semantic')} aria-pressed={view === 'semantic'}>Semantic steps</button>
         <button className="tab" onClick={() => setView('raw')} aria-pressed={view === 'raw'}>Raw events</button>
-        <label className="field-label" style={{ margin: '5px 0 0 auto' }}>Source <select className="select" value={source} onChange={(event) => setSource(event.target.value as typeof source)}><option value="all">All sources</option><option value="user">User</option><option value="system">System</option><option value="import">Import</option></select></label>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '0 0 0 auto' }}>
+          <span className="field-label" style={{ margin: 0, whiteSpace: 'nowrap' }}>Source</span>
+          <CustomSelect
+            value={source}
+            onChange={(value) => setSource(value as typeof source)}
+            options={[
+              { value: 'all', label: 'All sources' },
+              { value: 'user', label: 'User' },
+              { value: 'system', label: 'System' },
+              { value: 'import', label: 'Import' },
+            ]}
+            align="right"
+            style={{ width: 120 }}
+          />
+        </div>
       </div>
       {items.length === 0 ? <p className="empty">Recorded actions will appear here as the observation progresses.</p> : <ol style={{ listStyle: 'none', padding: 0, margin: 0 }}>
         {items.map((item) => <li key={item.id}><button className="timeline-item" onClick={() => setSelected(item)}><strong>{displayTime(item.occurredAt)}</strong> <span className="muted">· {view === 'semantic' ? item.semanticStep : item.action}</span><br /><small>{item.source} · {item.events.length} event{item.events.length === 1 ? '' : 's'}</small></button></li>)}

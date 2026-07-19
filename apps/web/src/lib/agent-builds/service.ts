@@ -48,7 +48,21 @@ export async function compileAgent(input: {
   const progress = async (stage: string, message: string) => { await input.repository.saveLog({ agentBuildId: build.id, stage, message }); input.onProgress?.({ stage, message }); };
   const artifactPath = `${version.organizationId}/${version.projectId}/builds/${build.id}`;
   const testCaseIds = await input.repository.getTestCaseIds(input.projectId);
-  const specification = createWorkflowSpecification({ workflowVersionId: version.id, version: version.version, reconstruction: reconstruction.data, workflowPack: input.registry.get(version.workflowType), testCaseIds });
+  // Compile against the process-agnostic I/O contract so agents accept any labelled
+  // case JSON learned from knowledge transfer, not a fixed domain pack schema.
+  const pack = input.registry.get(version.workflowType);
+  const generic = input.registry.get('generic_process');
+  const specification = createWorkflowSpecification({
+    workflowVersionId: version.id,
+    version: version.version,
+    reconstruction: reconstruction.data,
+    workflowPack: {
+      name: reconstruction.data.workflowObjective.slice(0, 160) || pack.name,
+      runtimeSchema: generic.runtimeSchema,
+      approvalPolicy: pack.approvalPolicy,
+    },
+    testCaseIds,
+  });
   const buildPrompt = createAgentCompilationPrompt({ specification, repair: null });
   const artifactFiles: Record<string, string> = { 'specification.json': `${JSON.stringify(specification, null, 2)}\n`, 'dependencies.lock': 'pydantic==2.10.6\n', 'prompts/build.txt': buildPrompt };
 

@@ -11,8 +11,9 @@ export interface SupervisedCaseRepository {
 export class SupervisedCaseInputError extends Error {}
 
 /**
- * Executes one evidence-linked case without writing replay results. Packs decide
- * whether a valid outcome needs approval, keeping domain policy outside core.
+ * Executes one evidence-linked case without writing replay results.
+ * Case I/O is process-agnostic JSON; optional pack helpers may still create
+ * approval drafts for human-review dispositions.
  */
 export async function executeSupervisedCase(input: {
   projectId: string; testCaseId: string; buildId?: string; actorId?: string; registry: WorkflowRegistry;
@@ -26,26 +27,53 @@ export async function executeSupervisedCase(input: {
   if (!rawCase) throw new SupervisedCaseInputError('The selected supervised case was not found.');
 
   const testCase = testCaseSchema.parse(rawCase);
+  if (!testCase.input || typeof testCase.input !== 'object' || Array.isArray(testCase.input) || Object.keys(testCase.input).length === 0) {
+    throw new SupervisedCaseInputError('The selected case input must be a non-empty JSON object.');
+  }
+  const caseInput = testCase.input as Record<string, unknown>;
   const pack = input.registry.get(build.workflowType);
-  const validatedInput = pack.inputSchema.safeParse(testCase.input);
-  if (!validatedInput.success) throw new SupervisedCaseInputError('The selected case input does not satisfy this workflow pack.');
-  const execution = await input.executor.execute(build.id, validatedInput.data as Record<string, unknown>);
+  const execution = await input.executor.execute(build.id, caseInput);
   if (execution.error || !execution.outcome) throw new SupervisedCaseInputError(execution.error ?? 'The generated agent did not return an outcome.');
-  const validOutcome = pack.outcomeSchema.safeParse(execution.outcome);
-  if (!validOutcome.success) throw new SupervisedCaseInputError('The generated agent returned an invalid workflow outcome.');
+  if (typeof execution.outcome !== 'object' || Array.isArray(execution.outcome)) {
+    throw new SupervisedCaseInputError('The generated agent returned an invalid workflow outcome.');
+  }
+  const outcome = execution.outcome;
 
   const approvalDraft = pack.approvalRequestForOutcome?.({
-    caseInput: validatedInput.data as Record<string, unknown>, outcome: validOutcome.data as Record<string, unknown>, evidenceIds: testCase.evidenceIds,
-  }) ?? null;
-  if (!approvalDraft) return { outcome: validOutcome.data as Record<string, unknown>, approval: null };
+    caseInput,
+    outcome,
+    evidenceIds: testCase.evidenceIds,
+  }) ?? genericApprovalDraft(outcome);
+  if (!approvalDraft) return { outcome, approval: null };
   if (testCase.evidenceIds.length === 0) throw new SupervisedCaseInputError('A supervised case that requires approval must include evidence references.');
   const approval = await input.repository.saveRequest(approvalRequestSchema.omit({ id: true }).parse({
     projectId: input.projectId, workflowVersionId: build.workflowVersionId, status: 'pending',
     reason: approvalDraft.reason, riskLevel: approvalDraft.riskLevel, requestedAction: approvalDraft.requestedAction,
     agentRecommendation: approvalDraft.agentRecommendation, confidence: approvalDraft.confidence,
     appliedRuleIds: approvalDraft.appliedRuleIds, agentBuildId: build.id, evidenceIds: testCase.evidenceIds,
-    payload: { caseId: testCase.id, caseLabel: testCase.label, input: validatedInput.data, outcome: validOutcome.data },
+    payload: { caseId: testCase.id, caseLabel: testCase.label, input: caseInput, outcome },
     createdAt: new Date().toISOString(),
   }), input.actorId);
-  return { outcome: validOutcome.data as Record<string, unknown>, approval };
+  return { outcome, approval };
+}
+
+function genericApprovalDraft(outcome: Record<string, unknown>) {
+  const decision = String(outcome.decision ?? '').trim().toLowerCase();
+  const reason = String(outcome.reason ?? 'Human review is required for this outcome.');
+  if (!decision) return null;
+  const needsApproval =
+    decision.includes('approval')
+    || decision.includes('escalate')
+    || decision.includes('hold')
+    || decision.includes('review')
+    || decision.includes('trust');
+  if (!needsApproval) return null;
+  return {
+    reason,
+    riskLevel: (decision.includes('fraud') || decision.includes('trust') ? 'high' : 'medium') as 'low' | 'medium' | 'high',
+    requestedAction: decision,
+    agentRecommendation: reason,
+    confidence: typeof outcome.confidence === 'number' ? outcome.confidence : null,
+    appliedRuleIds: Array.isArray(outcome.appliedRuleIds) ? outcome.appliedRuleIds.map(String) : [],
+  };
 }

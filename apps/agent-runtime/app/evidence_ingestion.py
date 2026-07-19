@@ -317,35 +317,58 @@ class EvidenceIngestionWorker:
         return result
 
     def _extract_image(
-        self, source: Path, start_ms: int | None, end_ms: int | None, *, include_visual: bool = True
+        self, source: Path, start_ms: int | None, end_ms: int | None
     ) -> list[dict[str, Any]]:
-        import pytesseract
-
-        content = pytesseract.image_to_string(str(source)).strip()
-        result = ([
+        # Image ingestion stores OCR only. Multimodal interpretation is a later worker and
+        # creates a visual citation when it needs one for the image pixels.
+        content, confidence = self._ocr_image(source)
+        if not content:
+            return []
+        return [
             {
-                "kind": "visual",
-                "content": "Image source retained for multimodal interpretation.",
+                "kind": "ocr",
+                "content": content,
                 "page_start": None,
                 "page_end": None,
                 "time_start_ms": start_ms,
                 "time_end_ms": end_ms,
-                "confidence": 1.0,
+                "confidence": confidence,
             }
-        ] if include_visual else [])
-        if content:
-            result.append(
-                {
-                    "kind": "ocr",
-                    "content": content,
-                    "page_start": None,
-                    "page_end": None,
-                    "time_start_ms": start_ms,
-                    "time_end_ms": end_ms,
-                    "confidence": 0.8,
-                }
-            )
-        return result
+        ]
+
+    def _ocr_image(self, source: Path) -> tuple[str, float]:
+        """Return OCR text plus mean Tesseract word confidence in [0, 1]."""
+        import pytesseract
+        from pytesseract import Output
+
+        data = pytesseract.image_to_data(str(source), output_type=Output.DICT)
+        lines: dict[tuple[int, int, int], list[str]] = {}
+        confidences: list[float] = []
+        texts = data.get("text", [])
+        confs = data.get("conf", [])
+        blocks = data.get("block_num", [])
+        pars = data.get("par_num", [])
+        line_nums = data.get("line_num", [])
+        for index, raw in enumerate(texts):
+            word = str(raw or "").strip()
+            try:
+                score = float(confs[index])
+            except (IndexError, TypeError, ValueError):
+                continue
+            # Tesseract uses -1 for empty / non-word cells.
+            if not word or score < 0:
+                continue
+            confidences.append(min(score, 100.0) / 100.0)
+            try:
+                key = (int(blocks[index]), int(pars[index]), int(line_nums[index]))
+            except (IndexError, TypeError, ValueError):
+                key = (0, 0, index)
+            lines.setdefault(key, []).append(word)
+        if not confidences:
+            return "", 0.0
+        content = "\n".join(" ".join(parts) for _, parts in sorted(lines.items()))
+        confidence = sum(confidences) / len(confidences)
+        return content, round(confidence, 4)
 
     def _extract_audio(
         self, source: Path, start_ms: int, end_ms: int, provider: str
@@ -393,9 +416,7 @@ class EvidenceIngestionWorker:
                     "confidence": 1.0,
                 }
             )
-            result.extend(
-                self._extract_image(frame.path, frame.time_ms, end_ms, include_visual=False)
-            )
+            result.extend(self._extract_image(frame.path, frame.time_ms, end_ms))
         return result
 
     def _duration_ms(self, source: Path) -> int:

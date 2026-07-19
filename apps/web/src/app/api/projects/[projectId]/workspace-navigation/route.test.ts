@@ -26,11 +26,12 @@ describe('workspace navigation API', () => {
       .mockResolvedValueOnce(new Response(JSON.stringify({ id: '44444444-4444-4444-8444-444444444444' })))
       .mockResolvedValueOnce(new Response(JSON.stringify([{ role: 'owner' }])))
       .mockResolvedValueOnce(new Response(JSON.stringify([{ id: workflowVersionId }])))
-      .mockResolvedValueOnce(new Response(JSON.stringify([{ workflow_version_id: workflowVersionId }])));
+      .mockResolvedValueOnce(new Response(JSON.stringify([{ workflow_version_id: workflowVersionId }])))
+      .mockResolvedValueOnce(new Response(JSON.stringify([{ name: 'Test project' }])));
 
     const response = await GET(new Request(`http://localhost/api/projects/${projectId}/workspace-navigation`, { headers: { Authorization: 'Bearer token' } }), { params: Promise.resolve({ projectId }) });
 
     expect(response.status).toBe(200);
-    await expect(response.json()).resolves.toEqual({ workflowVersionId, confirmedWorkflowVersionId: workflowVersionId });
+    await expect(response.json()).resolves.toEqual({ workflowVersionId, confirmedWorkflowVersionId: workflowVersionId, projectName: 'Test project' });
   });
 });

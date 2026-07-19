@@ -60,13 +60,19 @@ describe('reconstructWorkflow', () => {
 
   it('passes cited source intelligence to the reconstruction model without accepting it as a citation target', async () => {
     const store = repository();
-    const insight: EvidenceInsight = { id: '33333333-3333-4333-8333-333333333333', projectId, artifactId: evidence.artifactId, kind: 'fact', content: 'A visual review is required.', entityType: null, entityValue: null, confidence: 0.9, extractionIds: [evidenceId], modelRole: 'source_interpretation', modelVersion: 'configured-vision-model', createdAt: evidence.createdAt };
-    store.getEvidenceInsights = async () => [insight];
+    const insights: EvidenceInsight[] = [
+      { id: '33333333-3333-4333-8333-333333333333', projectId, artifactId: evidence.artifactId, kind: 'fact', content: 'A visual review is required.', entityType: null, entityValue: null, confidence: 0.9, extractionIds: [evidenceId], modelRole: 'source_interpretation', modelVersion: 'configured-vision-model', createdAt: evidence.createdAt },
+      { id: '44444444-4444-4444-8444-444444444444', projectId, artifactId: null, kind: 'package_suggested_step', content: 'Compare invoice quantity to delivery.', entityType: 'check', entityValue: '1', confidence: 0.95, extractionIds: [evidenceId], modelRole: 'package_synthesis', modelVersion: 'configured-vision-model', createdAt: evidence.createdAt },
+    ];
+    store.getEvidenceInsights = async () => insights;
     const fallback = invoiceExceptionWorkflowPack.reconstructionFallback!({ evidenceIds: [evidenceId] }) as WorkflowReconstruction;
     const prompts: string[] = [];
     await reconstructWorkflow({ projectId, sessionId, finalDecision: 'approve', registry: registry(), repository: store, model: { async reconstruct(prompt) { prompts.push(prompt); return fallback; } } });
-    expect(prompts[0]).toContain(insight.content);
+    expect(prompts[0]).toContain('package_suggested_step');
+    expect(prompts[0]).toContain('process-first ranking');
     expect(prompts[0]).toContain('source-insight IDs');
+    // Package synthesis appears before flat facts in the ranked insight payload.
+    expect(prompts[0]!.indexOf('package_suggested_step')).toBeLessThan(prompts[0]!.indexOf('A visual review is required.'));
   });
 
   it('does not allow production reconstruction to use a seeded fallback', async () => {

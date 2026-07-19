@@ -21,6 +21,11 @@ class CodexAuthenticationRequired(CodexRunnerError):
 
 SUPPORTED_IMAGE_MEDIA_TYPES = frozenset({"image/jpeg", "image/png", "image/webp"})
 
+# Workflow reconstruction and other long agentMessage payloads arrive as a single
+# JSONL line. asyncio's default StreamReader limit (64 KiB) truncates those
+# responses with LimitOverrunError / "chunk exceed the limit".
+JSONL_STREAM_LIMIT_BYTES = 16 * 1024 * 1024
+
 
 @dataclass(frozen=True)
 class CodexGeneration:
@@ -78,6 +83,7 @@ class CodexAppServer:
                 stdin=asyncio.subprocess.PIPE,
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
+                limit=JSONL_STREAM_LIMIT_BYTES,
                 env={
                     "PATH": os.environ.get("PATH", ""),
                     "HOME": os.environ.get("HOME", "/tmp"),
@@ -190,9 +196,15 @@ class CodexAppServer:
 
     async def _require_image_support(self, model: str) -> None:
         result = await self.request("model/list", {})
-        values = result.get("models")
+        # Codex app-server returns this paginated collection as `data`; earlier
+        # app-server variants exposed it as `models`.
+        values = result.get("models", result.get("data"))
         if not isinstance(values, list):
-            raise CodexRunnerError("Codex subscription multimodal capability could not be verified.")
+            keys = ", ".join(sorted(str(key) for key in result.keys())) or "none"
+            raise CodexRunnerError(
+                "Codex subscription multimodal capability could not be verified "
+                f"(model/list fields: {keys})."
+            )
         for value in values:
             if not isinstance(value, Mapping):
                 continue
@@ -253,6 +265,14 @@ class CodexAppServer:
             line = await asyncio.wait_for(self.process.stdout.readline(), timeout=self.timeout_seconds)
         except asyncio.TimeoutError as error:
             raise CodexRunnerError("Codex subscription request timed out.") from error
+        except (asyncio.LimitOverrunError, ValueError) as error:
+            # readline() converts LimitOverrunError into ValueError with the same message.
+            message = str(error)
+            if "chunk exceed the limit" in message or "Separator is not found" in message:
+                raise CodexRunnerError(
+                    "Codex app-server emitted a JSONL message larger than the runner stream limit."
+                ) from error
+            raise
         if not line:
             raise CodexRunnerError("Codex app-server stopped unexpectedly.")
         try:

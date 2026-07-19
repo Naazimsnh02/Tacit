@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import base64
+import logging
 import os
 from contextlib import asynccontextmanager
 from typing import Literal
@@ -19,6 +20,9 @@ from .codex_runner import (
 )
 
 
+logger = logging.getLogger(__name__)
+
+
 class GenerateImage(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
@@ -29,7 +33,7 @@ class GenerateImage(BaseModel):
 
 class GenerateRequest(BaseModel):
     purpose: str = Field(
-        pattern="^(workflow_reconstruction|agent_compilation|source_intelligence|cross_source_understanding)$"
+        pattern="^(workflow_reconstruction|agent_compilation|source_intelligence|cross_source_understanding|package_synthesis)$"
     )
     prompt: str = Field(min_length=1, max_length=512_000)
     images: list[GenerateImage] = Field(default_factory=list, max_length=64)
@@ -169,8 +173,12 @@ async def generate(request: GenerateRequest, x_tacit_codex_runner_secret: str | 
         result = await server.generate(request.prompt, _model(), images=images, detail=request.detail)
         return {"output": result.output, "model": result.model, "response_id": result.response_id, "usage": result.usage}
     except CodexAuthenticationRequired as error:
+        logger.warning("Codex subscription authentication failed: %s", error)
         raise HTTPException(status_code=503, detail=str(error)) from error
     except CodexRunnerError as error:
+        # This is a private service log. The source worker intentionally returns a
+        # generic message to users, while operators retain the actionable cause.
+        logger.warning("Codex subscription generation failed: %s", error)
         raise HTTPException(status_code=502, detail=str(error)) from error
     finally:
         await server.close()

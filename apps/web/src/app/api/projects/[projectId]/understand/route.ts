@@ -22,17 +22,24 @@ export async function POST(request: Request, context: { params: Promise<{ projec
     const repository = new SupabaseReconstructionRepository();
     const [evidence, insights] = await Promise.all([repository.getEvidence(projectId), repository.getEvidenceInsights(projectId)]);
     if (!insights.length) throw new AutomatedUnderstandingInputError('Finish source intelligence before preparing a workflow so every inference has interpreted, cited evidence.');
-    const observation = createAutomatedUnderstandingObservation({ projectId, evidence });
+    // Prefer a completed package synthesis draft when present; fall back to any
+    // cited insights so older packages and partial runs still reconstruct.
+    const observation = createAutomatedUnderstandingObservation({ projectId, evidence, insights });
     await persistCompletedObservation({ projectId, ...observation, repository: new SupabaseObservationRepository() });
     const result = await reconstructWorkflow({
       projectId,
       sessionId: observation.session.id,
-      finalDecision: 'Initial workflow draft requested from all available source material.',
+      finalDecision: 'Initial workflow draft requested from all available source material, using process-aware package synthesis when available.',
       registry: createWorkflowRegistry(),
       repository,
       model: createConfiguredReconstructionModel(),
     });
-    return NextResponse.json({ ...result, sessionId: observation.session.id, sourceCount: new Set(evidence.map((item) => item.artifactId)).size }, { status: 201 });
+    return NextResponse.json({
+      ...result,
+      sessionId: observation.session.id,
+      sourceCount: new Set(evidence.map((item) => item.artifactId)).size,
+      packageSynthesis: insights.some((insight) => insight.kind.startsWith('package_')),
+    }, { status: 201 });
   } catch (error) {
     if (error instanceof AutomatedUnderstandingInputError || error instanceof ReconstructionInputError) return NextResponse.json({ error: error.message }, { status: 400 });
     if (error instanceof ReconstructionOutputError) return NextResponse.json({ error: error.message }, { status: 422 });

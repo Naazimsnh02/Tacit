@@ -131,7 +131,30 @@ export function ObservationWorkspace({ projectId, workflowName, workspace, panel
     } catch (reason) { setCompletionState('error'); setError(reason instanceof Error ? reason.message : 'Unable to complete the observation.'); }
   }
 
-  if (!observation) return <WorkspaceShell active="Observe" projectId={projectId} projectName={workflowName}><p className="empty">Loading observation workspace...</p></WorkspaceShell>;
+  if (!observation) {
+    return (
+      <WorkspaceShell active="Observe" projectId={projectId} projectName={workflowName}>
+        <div className="skeleton" style={{ width: '30%', height: '24px', marginBottom: '24px' }} />
+        <section className="observation-hero" style={{ padding: '24px' }}>
+          <div className="skeleton" style={{ width: '100%', height: '100px', borderRadius: '12px' }} />
+        </section>
+        <section className="observation-stage" style={{ gap: '20px', display: 'grid', gridTemplateColumns: '280px 1fr 300px' }}>
+          <div className="inbox-panel" style={{ background: 'var(--surface)', padding: '16px', borderRadius: '12px', border: '1px solid var(--border)' }}>
+            <div className="skeleton" style={{ width: '80%', height: '20px', marginBottom: '12px' }} />
+            <div className="skeleton" style={{ width: '100%', height: '80px', marginBottom: '12px' }} />
+            <div className="skeleton" style={{ width: '100%', height: '80px' }} />
+          </div>
+          <div className="document-stage" style={{ background: 'var(--surface)', padding: '16px', borderRadius: '12px', border: '1px solid var(--border)' }}>
+            <div className="skeleton" style={{ width: '90%', height: '250px' }} />
+          </div>
+          <div className="tacit-rail" style={{ background: 'var(--surface)', padding: '16px', borderRadius: '12px', border: '1px solid var(--border)' }}>
+            <div className="skeleton" style={{ width: '80%', height: '20px', marginBottom: '12px' }} />
+            <div className="skeleton" style={{ width: '100%', height: '180px' }} />
+          </div>
+        </section>
+      </WorkspaceShell>
+    );
+  }
 
   return <WorkspaceShell active="Observe" projectId={projectId} projectName={workflowName}>
     <PageHeader breadcrumb={`Observe / ${workflowName}`} title="Live knowledge transfer for a real exception" description="Hand over the evidence, judgment, and safety boundaries the way you would brief a colleague. Tacit prepares the workflow from this KT session." status={<StatusBadge status={status === 'recording' ? 'observing' : 'draft'} />} actions={<DemoControls stage="observe" onReset={resetDemo} onStart={startSession} />} />

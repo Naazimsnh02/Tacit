@@ -77,9 +77,11 @@ class SourceIntelligenceWorker:
                 self._interpret_project_sources(claimed)
             elif claimed.kind == "cross_source_understanding":
                 self._link_project_sources(claimed)
+            elif claimed.kind == "package_synthesis":
+                self._synthesize_package(claimed)
             else:
                 raise SourceIntelligenceError("Unsupported source-intelligence job kind.")
-            self._complete_job(claimed.job_id)
+            self._complete_job(claimed)
         except Exception as error:  # keep diagnostics server-side and retry bounded work
             self._retry_or_fail(claimed, error)
         return True
@@ -107,9 +109,18 @@ class SourceIntelligenceWorker:
         self._ensure_model()
         artifacts = self._project_artifacts(job.project_id)
         requested = {str(value) for value in job.payload.get("evidenceIds", [])}
+        interpreted = self._interpreted_artifact_ids(job.project_id)
         for artifact in artifacts:
+            # Artifacts are immutable for the lifetime of their extraction IDs. A
+            # stored summary is a completed checkpoint, so retries resume with only
+            # unfinished sources instead of duplicating completed insight rows.
+            if artifact.id in interpreted:
+                continue
             extractions = self._artifact_extractions(artifact.id)
-            if requested and not requested.intersection(item["id"] for item in extractions):
+            # OCR can legitimately produce no text for a scan-cleared image. Let
+            # the visual branch create its durable citation anchor before deciding
+            # whether the artifact belongs in this source-understanding pass.
+            if not self._should_interpret_artifact(artifact, extractions, requested):
                 continue
             with tempfile.TemporaryDirectory(prefix="tacit-source-") as temp:
                 directory = Path(temp)
@@ -127,6 +138,22 @@ class SourceIntelligenceWorker:
                             artifact, extractions, batch, self.vision_escalation_detail
                         )
                     self._save_interpretation(job.project_id, artifact.id, interpretation, extractions)
+
+    def _interpreted_artifact_ids(self, project_id: str) -> set[str]:
+        rows = self._request(
+            "/rest/v1/evidence_insights?project_id=eq."
+            + project_id
+            + "&kind=eq.summary&select=artifact_id"
+        )
+        return {str(row["artifact_id"]) for row in rows if row.get("artifact_id")}
+
+    @staticmethod
+    def _should_interpret_artifact(
+        artifact: SourceArtifact, extractions: list[dict[str, Any]], requested: set[str]
+    ) -> bool:
+        if not requested or requested.intersection(str(item["id"]) for item in extractions):
+            return True
+        return artifact.media_type.startswith("image/") or artifact.media_type.startswith("video/")
 
     def _link_project_sources(self, job: ClaimedPlatformJob) -> None:
         self._ensure_model()
@@ -202,6 +229,141 @@ class SourceIntelligenceWorker:
         if rows:
             self._request("/rest/v1/evidence_relationships", method="POST", body=rows)
 
+    def _synthesize_package(self, job: ClaimedPlatformJob) -> None:
+        """Assemble a domain-agnostic process draft from all cited source insights.
+
+        Package-level insights are project-scoped (artifact_id is null). They never
+        invent extraction IDs: every claim must reuse IDs already present on the
+        contributing source insights so reconstruction can cite durable evidence.
+        """
+        self._ensure_model()
+        insights = self._request(
+            f"/rest/v1/evidence_insights?project_id=eq.{job.project_id}&select=*&order=created_at.asc"
+        )
+        if not insights:
+            return
+        # Retry-safe checkpoint: a prior successful synthesis for this package left
+        # package_* rows. Replacing them keeps one coherent draft per project run.
+        self._clear_package_insights(job.project_id)
+        extraction_ids = {
+            str(item)
+            for row in insights
+            for item in (row.get("extraction_ids") if isinstance(row.get("extraction_ids"), list) else [])
+        }
+        if not extraction_ids:
+            raise SourceIntelligenceError("Package synthesis requires cited source insights.")
+        compact = _compact_insights_for_synthesis(insights)
+        result = self._responses_json(
+            (
+                "Synthesize one domain-agnostic knowledge-transfer package from the cited source insights. "
+                "Do not invent process knowledge. Prefer policy/source_role=policy for rules and thresholds; "
+                "prefer case_record for primary case facts; use operational_register for patterns; "
+                "use expert_walkthrough for unwritten judgment and approval boundaries. "
+                "Every output object must cite only extraction IDs already present on the supplied insights. "
+                "Order suggestedSteps as a practical reviewer would work the case. "
+                "Leave arrays empty when unsupported. Never invent connectors, systems, or outcomes.\n\n"
+                f"Source insights:\n{json.dumps(compact)}"
+            ),
+            _package_synthesis_schema(),
+            [],
+            self.vision_detail,
+            purpose="package_synthesis",
+        )
+        self._save_package_synthesis(job.project_id, result, extraction_ids)
+
+    def _clear_package_insights(self, project_id: str) -> None:
+        kinds = ",".join(PACKAGE_INSIGHT_KINDS)
+        self._request(
+            f"/rest/v1/evidence_insights?project_id=eq.{project_id}&kind=in.({kinds})",
+            method="DELETE",
+        )
+
+    def _save_package_synthesis(
+        self, project_id: str, result: dict[str, Any], allowed: set[str]
+    ) -> None:
+        rows: list[dict[str, Any]] = []
+        for kind, value in (
+            ("package_objective", result.get("processObjective")),
+            ("package_primary_case", result.get("primaryCase")),
+        ):
+            row = self._package_insight_row(project_id, kind, value, allowed)
+            if row:
+                rows.append(row)
+        for kind, values in (
+            ("package_policy_rule", result.get("policyRules", [])),
+            ("package_case_fact", result.get("caseFacts", [])),
+            ("package_suggested_step", result.get("suggestedSteps", [])),
+            ("package_missing", result.get("missingForAutomation", [])),
+            ("package_never_automate", result.get("neverAutomate", [])),
+            ("package_contradiction", result.get("contradictions", [])),
+        ):
+            if not isinstance(values, list):
+                continue
+            for value in values:
+                row = self._package_insight_row(project_id, kind, value, allowed)
+                if row:
+                    rows.append(row)
+        if not rows:
+            raise SourceIntelligenceError("Package synthesis did not return cited process structure.")
+        self._request("/rest/v1/evidence_insights", method="POST", body=rows)
+
+    def _package_insight_row(
+        self, project_id: str, kind: str, value: Any, allowed: set[str]
+    ) -> dict[str, Any] | None:
+        if not isinstance(value, dict):
+            return None
+        content = str(
+            value.get("content")
+            or value.get("statement")
+            or value.get("description")
+            or value.get("name")
+            or ""
+        ).strip()
+        ids = [str(item) for item in value.get("extractionIds", [])]
+        confidence = float(value.get("confidence", -1))
+        if not content or not ids or any(item not in allowed for item in ids) or not 0 <= confidence <= 1:
+            return None
+        entity_type = None
+        entity_value = None
+        if kind == "package_suggested_step":
+            entity_type = str(value.get("kind") or value.get("type") or "action").strip() or "action"
+            order = value.get("orderHint")
+            name = str(value.get("name") or "").strip()
+            entity_value = name or (str(int(order)) if isinstance(order, (int, float)) else None)
+        elif kind == "package_policy_rule":
+            entity_type = "policy_rule"
+            entity_value = str(value.get("name") or "").strip() or None
+            condition = str(value.get("condition") or "").strip()
+            action = str(value.get("action") or "").strip()
+            if condition and action:
+                content = f"{condition} → {action}"
+            elif condition or action:
+                content = condition or action
+        elif kind == "package_case_fact":
+            entity_type = "case_field"
+            name = str(value.get("name") or value.get("field") or "").strip()
+            field_value = str(value.get("value") or "").strip()
+            entity_value = name or None
+            if name and field_value:
+                content = f"{name} = {field_value}"
+            elif field_value:
+                content = field_value
+        elif kind == "package_contradiction":
+            entity_type = "contradiction"
+            entity_value = str(value.get("severity") or "").strip() or None
+        return {
+            "project_id": project_id,
+            "artifact_id": None,
+            "kind": kind,
+            "content": content,
+            "entity_type": entity_type,
+            "entity_value": entity_value,
+            "confidence": confidence,
+            "extraction_ids": ids,
+            "model_role": "package_synthesis",
+            "model_version": self._model_version(),
+        }
+
     def _project_artifacts(self, project_id: str) -> list[SourceArtifact]:
         rows = self._request(
             "/rest/v1/evidence_artifacts?project_id=eq."
@@ -233,7 +395,10 @@ class SourceIntelligenceWorker:
         source = directory / "source"
         self._download(artifact.storage_key, source)
         if artifact.media_type.startswith("image/"):
-            citations = [str(item["id"]) for item in extractions]
+            # Prefer an explicit visual citation; otherwise use any extraction as the handle,
+            # or create a visual anchor when ingestion produced nothing citeable.
+            preferred = [item for item in extractions if item.get("kind") == "visual"]
+            citations = [str(item["id"]) for item in (preferred or extractions)]
             if not citations:
                 citations = [self._save_visual_extraction(artifact, None, None)]
                 extractions = self._artifact_extractions(artifact.id)
@@ -315,9 +480,17 @@ class SourceIntelligenceWorker:
             for row in extractions
         ]
         prompt = (
-            "Interpret one scanned, immutable workflow source. Extract only evidence that is visible or stated in the supplied source records. "
-            "For images and video frames, distinguish literal visible text from visual description and inference. OCR is a fallible supporting signal: correct it only when the pixels support the correction, preserve unclear text as uncertain, and never fabricate values. "
-            "Describe systems, UI state, tables, decisions, actions, and entities when present. Every output object must cite one or more extraction IDs below.\n\n"
+            "Interpret one scanned, immutable workflow source in a domain-agnostic way. "
+            "Extract only evidence that is visible or stated in the supplied source records. "
+            "For images and video frames, distinguish literal visible text from visual description and inference. "
+            "OCR is a fallible supporting signal: correct it only when the pixels support the correction, "
+            "preserve unclear text as uncertain, and never fabricate values. "
+            "Classify the source role (policy, case_record, operational_register, expert_walkthrough, system_screenshot, other). "
+            "When present, extract process structure: objective, ordered steps, decisions with conditions/actions, "
+            "numeric or categorical thresholds, actors/roles, exceptions, never-automate boundaries, and case field values. "
+            "Leave process arrays empty when the source does not support them. "
+            "Describe systems, UI state, tables, and entities when present. "
+            "Every output object must cite one or more extraction IDs below.\n\n"
             f"Artifact media type: {artifact.media_type}\n"
             f"Citeable extractions:\n{json.dumps(records)}"
         )
@@ -420,9 +593,23 @@ class SourceIntelligenceWorker:
         allowed = {str(row["id"]) for row in extractions}
         rows: list[dict[str, Any]] = []
         source_class = str(result.get("sourceClass", "other"))
+        source_role = str(result.get("sourceRole") or result.get("sourceClass") or "other")
+        classification = result.get("classification") if isinstance(result.get("classification"), dict) else {}
+        summary = result.get("summary") if isinstance(result.get("summary"), dict) else {}
+        quality = result.get("quality") if isinstance(result.get("quality"), dict) else {}
+        role_citations = classification.get("extractionIds") or summary.get("extractionIds") or []
         for kind, value in (
-            ("source_classification", {"content": source_class, **result.get("classification", {})}),
-            ("summary", result.get("summary", {})),
+            ("source_classification", {"content": source_class, **classification}),
+            (
+                "source_role",
+                {
+                    "content": source_role,
+                    "confidence": classification.get("confidence", quality.get("confidence", 0.5)),
+                    "extractionIds": role_citations,
+                },
+            ),
+            ("summary", summary),
+            ("process_objective", result.get("processObjective")),
         ):
             row = self._insight_row(project_id, artifact_id, kind, value, allowed)
             if row:
@@ -432,7 +619,16 @@ class SourceIntelligenceWorker:
             ("fact", result.get("facts", [])),
             ("table_structure", result.get("tableStructures", [])),
             ("system_context", result.get("systemContexts", [])),
+            ("actor", result.get("actors", [])),
+            ("process_step", result.get("processSteps", [])),
+            ("process_decision", result.get("decisions", [])),
+            ("threshold", result.get("thresholds", [])),
+            ("case_field", result.get("caseFields", [])),
+            ("exception", result.get("exceptions", [])),
+            ("never_automate", result.get("neverAutomate", [])),
         ):
+            if not isinstance(values, list):
+                continue
             for value in values:
                 row = self._insight_row(project_id, artifact_id, kind, value, allowed)
                 if row:
@@ -446,18 +642,23 @@ class SourceIntelligenceWorker:
     ) -> dict[str, Any] | None:
         if not isinstance(value, dict):
             return None
-        content = str(value.get("content") or value.get("statement") or "").strip()
+        content = str(value.get("content") or value.get("statement") or value.get("description") or "").strip()
         ids = [str(item) for item in value.get("extractionIds", [])]
         confidence = float(value.get("confidence", -1))
         if not content or not ids or any(item not in allowed for item in ids) or not 0 <= confidence <= 1:
-            return None
+            # Structured process objects may encode content across fields.
+            content, ids, confidence, entity_type, entity_value = _normalize_process_insight(kind, value, allowed)
+            if not content or not ids or not 0 <= confidence <= 1:
+                return None
+        else:
+            entity_type, entity_value = _entity_fields_for_kind(kind, value)
         return {
             "project_id": project_id,
             "artifact_id": artifact_id,
             "kind": kind,
             "content": content,
-            "entity_type": str(value.get("type")).strip() if kind == "entity" and value.get("type") else None,
-            "entity_value": str(value.get("value")).strip() if kind == "entity" and value.get("value") else None,
+            "entity_type": entity_type,
+            "entity_value": entity_value,
             "confidence": confidence,
             "extraction_ids": ids,
             "model_role": "source_interpretation",
@@ -475,23 +676,36 @@ class SourceIntelligenceWorker:
         except HTTPError as error:
             raise SourceIntelligenceError("A scan-cleared source could not be downloaded.") from error
 
-    def _complete_job(self, job_id: str) -> None:
+    def _complete_job(self, job: ClaimedPlatformJob) -> None:
         now = _now()
         self._request(
-            f"/rest/v1/platform_jobs?id=eq.{job_id}",
+            f"/rest/v1/platform_jobs?id=eq.{job.job_id}",
             method="PATCH",
             body={"status": "succeeded", "completed_at": now, "updated_at": now, "error_message": None},
         )
+        self._update_attempt(job, "succeeded", now)
 
     def _retry_or_fail(self, job: ClaimedPlatformJob, error: Exception) -> None:
         now = _now()
         failure = str(error) or "Source intelligence failed safely."
         if job.attempts >= 5:
             value = {"status": "failed", "completed_at": now, "updated_at": now, "error_message": failure[:500]}
+            attempt_status = "failed"
         else:
             retry_at = (datetime.now(UTC) + timedelta(seconds=30 * job.attempts)).isoformat()
             value = {"status": "queued", "available_at": retry_at, "updated_at": now, "error_message": failure[:500]}
+            attempt_status = "retrying"
         self._request(f"/rest/v1/platform_jobs?id=eq.{job.job_id}", method="PATCH", body=value)
+        self._update_attempt(job, attempt_status, now, failure[:500])
+
+    def _update_attempt(
+        self, job: ClaimedPlatformJob, status: str, completed_at: str, error_message: str | None = None
+    ) -> None:
+        self._request(
+            f"/rest/v1/platform_job_attempts?job_id=eq.{job.job_id}&attempt=eq.{job.attempts}",
+            method="PATCH",
+            body={"status": status, "completed_at": completed_at, "error_message": error_message},
+        )
 
     def _request(
         self,
@@ -532,35 +746,369 @@ class SourceIntelligenceWorker:
         return str(self.vision_model)
 
 
-def _source_interpretation_schema() -> dict[str, Any]:
-    citation = {"type": "array", "minItems": 1, "items": {"type": "string"}}
-    item = {
+PACKAGE_INSIGHT_KINDS = (
+    "package_objective",
+    "package_primary_case",
+    "package_policy_rule",
+    "package_case_fact",
+    "package_suggested_step",
+    "package_missing",
+    "package_never_automate",
+    "package_contradiction",
+)
+
+PROCESS_INSIGHT_PRIORITY = {
+    "package_objective": 0,
+    "package_primary_case": 0,
+    "package_policy_rule": 0,
+    "package_case_fact": 0,
+    "package_suggested_step": 0,
+    "package_missing": 0,
+    "package_never_automate": 0,
+    "package_contradiction": 0,
+    "source_role": 1,
+    "process_objective": 1,
+    "process_step": 1,
+    "process_decision": 1,
+    "threshold": 1,
+    "actor": 1,
+    "exception": 1,
+    "never_automate": 1,
+    "case_field": 1,
+    "summary": 2,
+    "source_classification": 2,
+    "fact": 3,
+    "entity": 3,
+    "table_structure": 4,
+    "system_context": 4,
+}
+
+
+def _citation_schema() -> dict[str, Any]:
+    return {"type": "array", "minItems": 1, "items": {"type": "string"}}
+
+
+def _cited_item_schema() -> dict[str, Any]:
+    return {
         "type": "object",
         "additionalProperties": False,
         "required": ["content", "confidence", "extractionIds"],
-        "properties": {"content": {"type": "string"}, "confidence": {"type": "number"}, "extractionIds": citation},
+        "properties": {
+            "content": {"type": "string"},
+            "confidence": {"type": "number"},
+            "extractionIds": _citation_schema(),
+        },
     }
+
+
+def _source_interpretation_schema() -> dict[str, Any]:
+    item = _cited_item_schema()
     entity = {
         "type": "object",
         "additionalProperties": False,
         "required": ["content", "type", "value", "confidence", "extractionIds"],
         "properties": {**item["properties"], "type": {"type": "string"}, "value": {"type": "string"}},
     }
+    actor = {
+        "type": "object",
+        "additionalProperties": False,
+        "required": ["content", "role", "confidence", "extractionIds"],
+        "properties": {
+            "content": {"type": "string"},
+            "role": {"type": "string"},
+            "confidence": {"type": "number"},
+            "extractionIds": _citation_schema(),
+        },
+    }
+    process_step = {
+        "type": "object",
+        "additionalProperties": False,
+        "required": ["name", "description", "kind", "orderHint", "confidence", "extractionIds"],
+        "properties": {
+            "name": {"type": "string"},
+            "description": {"type": "string"},
+            "kind": {
+                "type": "string",
+                "enum": ["check", "decision", "action", "approval", "escalation", "other"],
+            },
+            "orderHint": {"type": "integer"},
+            "confidence": {"type": "number"},
+            "extractionIds": _citation_schema(),
+        },
+    }
+    decision = {
+        "type": "object",
+        "additionalProperties": False,
+        "required": ["name", "condition", "action", "risk", "confidence", "extractionIds"],
+        "properties": {
+            "name": {"type": "string"},
+            "condition": {"type": "string"},
+            "action": {"type": "string"},
+            "risk": {"type": "string", "enum": ["low", "medium", "high"]},
+            "confidence": {"type": "number"},
+            "extractionIds": _citation_schema(),
+        },
+    }
+    threshold = {
+        "type": "object",
+        "additionalProperties": False,
+        "required": ["name", "value", "unit", "confidence", "extractionIds"],
+        "properties": {
+            "name": {"type": "string"},
+            "value": {"type": "string"},
+            "unit": {"type": "string"},
+            "confidence": {"type": "number"},
+            "extractionIds": _citation_schema(),
+        },
+    }
+    case_field = {
+        "type": "object",
+        "additionalProperties": False,
+        "required": ["name", "value", "confidence", "extractionIds"],
+        "properties": {
+            "name": {"type": "string"},
+            "value": {"type": "string"},
+            "confidence": {"type": "number"},
+            "extractionIds": _citation_schema(),
+        },
+    }
     return {
         "type": "object",
         "additionalProperties": False,
-        "required": ["sourceClass", "classification", "summary", "entities", "facts", "tableStructures", "systemContexts", "quality"],
+        "required": [
+            "sourceClass",
+            "sourceRole",
+            "classification",
+            "summary",
+            "processObjective",
+            "entities",
+            "facts",
+            "tableStructures",
+            "systemContexts",
+            "actors",
+            "processSteps",
+            "decisions",
+            "thresholds",
+            "caseFields",
+            "exceptions",
+            "neverAutomate",
+            "quality",
+        ],
         "properties": {
-            "sourceClass": {"type": "string", "enum": ["policy", "record", "spreadsheet", "screen", "conversation", "recording", "other"]},
+            "sourceClass": {
+                "type": "string",
+                "enum": ["policy", "record", "spreadsheet", "screen", "conversation", "recording", "other"],
+            },
+            "sourceRole": {
+                "type": "string",
+                "enum": [
+                    "policy",
+                    "case_record",
+                    "operational_register",
+                    "expert_walkthrough",
+                    "system_screenshot",
+                    "other",
+                ],
+            },
             "classification": item,
             "summary": item,
+            "processObjective": item,
             "entities": {"type": "array", "items": entity},
             "facts": {"type": "array", "items": item},
             "tableStructures": {"type": "array", "items": item},
             "systemContexts": {"type": "array", "items": item},
-            "quality": {"type": "object", "additionalProperties": False, "required": ["confidence", "needsHigherDetail"], "properties": {"confidence": {"type": "number"}, "needsHigherDetail": {"type": "boolean"}}},
+            "actors": {"type": "array", "items": actor},
+            "processSteps": {"type": "array", "items": process_step},
+            "decisions": {"type": "array", "items": decision},
+            "thresholds": {"type": "array", "items": threshold},
+            "caseFields": {"type": "array", "items": case_field},
+            "exceptions": {"type": "array", "items": item},
+            "neverAutomate": {"type": "array", "items": item},
+            "quality": {
+                "type": "object",
+                "additionalProperties": False,
+                "required": ["confidence", "needsHigherDetail"],
+                "properties": {
+                    "confidence": {"type": "number"},
+                    "needsHigherDetail": {"type": "boolean"},
+                },
+            },
         },
     }
+
+
+def _package_synthesis_schema() -> dict[str, Any]:
+    item = _cited_item_schema()
+    policy_rule = {
+        "type": "object",
+        "additionalProperties": False,
+        "required": ["name", "condition", "action", "risk", "confidence", "extractionIds"],
+        "properties": {
+            "name": {"type": "string"},
+            "condition": {"type": "string"},
+            "action": {"type": "string"},
+            "risk": {"type": "string", "enum": ["low", "medium", "high"]},
+            "confidence": {"type": "number"},
+            "extractionIds": _citation_schema(),
+        },
+    }
+    case_fact = {
+        "type": "object",
+        "additionalProperties": False,
+        "required": ["name", "value", "confidence", "extractionIds"],
+        "properties": {
+            "name": {"type": "string"},
+            "value": {"type": "string"},
+            "confidence": {"type": "number"},
+            "extractionIds": _citation_schema(),
+        },
+    }
+    suggested_step = {
+        "type": "object",
+        "additionalProperties": False,
+        "required": ["name", "description", "kind", "orderHint", "confidence", "extractionIds"],
+        "properties": {
+            "name": {"type": "string"},
+            "description": {"type": "string"},
+            "kind": {
+                "type": "string",
+                "enum": ["check", "decision", "action", "approval", "escalation", "other"],
+            },
+            "orderHint": {"type": "integer"},
+            "confidence": {"type": "number"},
+            "extractionIds": _citation_schema(),
+        },
+    }
+    contradiction = {
+        "type": "object",
+        "additionalProperties": False,
+        "required": ["content", "severity", "confidence", "extractionIds"],
+        "properties": {
+            "content": {"type": "string"},
+            "severity": {"type": "string", "enum": ["low", "medium", "high"]},
+            "confidence": {"type": "number"},
+            "extractionIds": _citation_schema(),
+        },
+    }
+    return {
+        "type": "object",
+        "additionalProperties": False,
+        "required": [
+            "processObjective",
+            "primaryCase",
+            "policyRules",
+            "caseFacts",
+            "suggestedSteps",
+            "missingForAutomation",
+            "neverAutomate",
+            "contradictions",
+        ],
+        "properties": {
+            "processObjective": item,
+            "primaryCase": item,
+            "policyRules": {"type": "array", "items": policy_rule},
+            "caseFacts": {"type": "array", "items": case_fact},
+            "suggestedSteps": {"type": "array", "items": suggested_step},
+            "missingForAutomation": {"type": "array", "items": item},
+            "neverAutomate": {"type": "array", "items": item},
+            "contradictions": {"type": "array", "items": contradiction},
+        },
+    }
+
+
+def _compact_insights_for_synthesis(insights: list[dict[str, Any]], limit: int = 200) -> list[dict[str, Any]]:
+    ranked = sorted(
+        insights,
+        key=lambda row: (
+            PROCESS_INSIGHT_PRIORITY.get(str(row.get("kind")), 5),
+            str(row.get("created_at") or ""),
+        ),
+    )
+    compact: list[dict[str, Any]] = []
+    for row in ranked[:limit]:
+        compact.append(
+            {
+                "id": row.get("id"),
+                "kind": row.get("kind"),
+                "content": row.get("content"),
+                "entityType": row.get("entity_type"),
+                "entityValue": row.get("entity_value"),
+                "extractionIds": row.get("extraction_ids"),
+                "confidence": row.get("confidence"),
+                "artifactId": row.get("artifact_id"),
+            }
+        )
+    return compact
+
+
+def _entity_fields_for_kind(kind: str, value: dict[str, Any]) -> tuple[str | None, str | None]:
+    if kind == "entity":
+        entity_type = str(value.get("type")).strip() if value.get("type") else None
+        entity_value = str(value.get("value")).strip() if value.get("value") else None
+        return entity_type, entity_value
+    if kind == "actor":
+        role = str(value.get("role") or value.get("type") or "").strip() or None
+        return "actor", role
+    if kind == "process_step":
+        return (
+            str(value.get("kind") or "other").strip() or "other",
+            str(value.get("name") or value.get("orderHint") or "").strip() or None,
+        )
+    if kind == "process_decision":
+        return "decision", str(value.get("name") or "").strip() or None
+    if kind == "threshold":
+        return "threshold", str(value.get("name") or "").strip() or None
+    if kind == "case_field":
+        return "case_field", str(value.get("name") or "").strip() or None
+    if kind in {"source_role", "source_classification"}:
+        return kind, str(value.get("content") or "").strip() or None
+    return None, None
+
+
+def _normalize_process_insight(
+    kind: str, value: dict[str, Any], allowed: set[str]
+) -> tuple[str, list[str], float, str | None, str | None]:
+    ids = [str(item) for item in value.get("extractionIds", []) if str(item) in allowed]
+    try:
+        confidence = float(value.get("confidence", -1))
+    except (TypeError, ValueError):
+        confidence = -1
+    if kind == "process_step":
+        name = str(value.get("name") or "").strip()
+        description = str(value.get("description") or value.get("content") or "").strip()
+        content = description or name
+        if name and description and name not in description:
+            content = f"{name}: {description}"
+        return content, ids, confidence, *_entity_fields_for_kind(kind, value)
+    if kind == "process_decision":
+        name = str(value.get("name") or "").strip()
+        condition = str(value.get("condition") or "").strip()
+        action = str(value.get("action") or "").strip()
+        if condition and action:
+            content = f"{condition} → {action}"
+        else:
+            content = condition or action or name
+        if name and content and name not in content:
+            content = f"{name}: {content}"
+        return content, ids, confidence, *_entity_fields_for_kind(kind, value)
+    if kind == "threshold":
+        name = str(value.get("name") or "").strip()
+        amount = str(value.get("value") or "").strip()
+        unit = str(value.get("unit") or "").strip()
+        parts = [part for part in (name, amount, unit) if part]
+        content = " ".join(parts) if parts else str(value.get("content") or "").strip()
+        return content, ids, confidence, *_entity_fields_for_kind(kind, value)
+    if kind == "case_field":
+        name = str(value.get("name") or "").strip()
+        field_value = str(value.get("value") or "").strip()
+        content = f"{name} = {field_value}" if name and field_value else (field_value or name)
+        return content, ids, confidence, *_entity_fields_for_kind(kind, value)
+    if kind == "actor":
+        role = str(value.get("role") or "").strip()
+        content = str(value.get("content") or role).strip()
+        return content, ids, confidence, *_entity_fields_for_kind(kind, value)
+    content = str(value.get("content") or value.get("statement") or value.get("description") or "").strip()
+    return content, ids, confidence, *_entity_fields_for_kind(kind, value)
 
 
 def _frame_extraction_id(extractions: list[dict[str, Any]], time_ms: int) -> str | None:

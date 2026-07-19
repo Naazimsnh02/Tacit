@@ -66,3 +66,4 @@ Desktop.ini
 docs/
 *.md
 !/README.md
+supabase/.temp

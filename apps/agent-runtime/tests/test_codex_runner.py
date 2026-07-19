@@ -1,12 +1,21 @@
 import asyncio
 import base64
+import json
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 from fastapi import HTTPException
 from pydantic import ValidationError
 
-from app.codex_runner import CodexAppServer, CodexInputImage, final_agent_message, request_is_authorized
+from app.codex_runner import (
+    JSONL_STREAM_LIMIT_BYTES,
+    CodexAppServer,
+    CodexInputImage,
+    CodexRunnerError,
+    final_agent_message,
+    request_is_authorized,
+)
 from app.codex_runner_api import GenerateImage, _authorize, decoded_images
 
 
@@ -82,6 +91,16 @@ def test_model_capability_requires_image_input() -> None:
     asyncio.run(server._require_image_support("gpt-5.6-terra"))
 
 
+def test_model_capability_accepts_the_current_paginated_app_server_shape() -> None:
+    server = CodexAppServer()
+
+    async def request(_method: str, _params: object) -> dict[str, object]:
+        return {"data": [{"id": "gpt-5.6-terra", "inputModalities": ["text", "image"]}], "nextCursor": None}
+
+    server.request = request  # type: ignore[method-assign]
+    asyncio.run(server._require_image_support("gpt-5.6-terra"))
+
+
 def test_runner_image_payload_limits_and_secret_are_enforced(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("CODEX_SUBSCRIPTION_MAX_IMAGES", "1")
     monkeypatch.setenv("CODEX_SUBSCRIPTION_MAX_IMAGE_PAYLOAD_BYTES", "4")
@@ -98,3 +117,50 @@ def test_runner_image_payload_limits_and_secret_are_enforced(monkeypatch: pytest
     with pytest.raises(HTTPException) as error:
         _authorize("wrong")
     assert error.value.status_code == 401
+
+
+def test_jsonl_stream_limit_exceeds_asyncio_default() -> None:
+    # Default asyncio StreamReader limit is 64 KiB; workflow JSONL is larger.
+    assert JSONL_STREAM_LIMIT_BYTES > 64 * 1024
+
+
+def test_read_accepts_large_jsonl_messages() -> None:
+    payload = {
+        "method": "item/completed",
+        "params": {
+            "item": {
+                "type": "agentMessage",
+                "phase": "final_answer",
+                "text": "x" * 100_000,
+            }
+        },
+    }
+    line = (json.dumps(payload, separators=(",", ":")) + "\n").encode()
+    assert len(line) > 64 * 1024
+
+    async def run() -> dict[str, object]:
+        reader = asyncio.StreamReader(limit=JSONL_STREAM_LIMIT_BYTES)
+        reader.feed_data(line)
+        reader.feed_eof()
+        server = CodexAppServer()
+        server.process = SimpleNamespace(stdout=reader)  # type: ignore[assignment]
+        return dict(await server._read())
+
+    message = asyncio.run(run())
+    assert message["method"] == "item/completed"
+    assert final_agent_message(message) == "x" * 100_000
+
+
+def test_read_maps_stream_limit_overrun_to_runner_error() -> None:
+    oversized = b'{"method":"item/completed","params":{"item":{"text":"' + (b"y" * 70_000)
+
+    async def run() -> None:
+        # Default 64 KiB limit reproduces the production failure mode.
+        reader = asyncio.StreamReader(limit=64 * 1024)
+        reader.feed_data(oversized)
+        server = CodexAppServer()
+        server.process = SimpleNamespace(stdout=reader)  # type: ignore[assignment]
+        await server._read()
+
+    with pytest.raises(CodexRunnerError, match="larger than the runner stream limit"):
+        asyncio.run(run())

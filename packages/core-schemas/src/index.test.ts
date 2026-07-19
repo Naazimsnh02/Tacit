@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { clarificationQuestionDraftSchema, evaluationMatchCategorySchema, observationSessionStatusSchema, projectSchema, workflowSpecificationSchema, workflowTypeSchema } from './index';
+import { clarificationQuestionDraftSchema, evaluationMatchCategorySchema, evidenceInsightKindSchema, observationSessionStatusSchema, projectSchema, workflowSpecificationSchema, workflowTypeSchema } from './index';
 
 describe('core schemas', () => {
   it('accepts workflow types without encoding a domain', () => {
@@ -40,5 +40,12 @@ describe('core schemas', () => {
       outputSchema: [{ name: 'escalated', type: 'boolean', required: true, description: 'Escalation result.' }],
       auditPolicy: { evidenceRequired: true, retainDecisionTrace: true }, testCaseIds: [],
     }).success).toBe(true);
+  });
+
+  it('accepts process-aware and package synthesis insight kinds without domain encoding', () => {
+    expect(evidenceInsightKindSchema.parse('process_decision')).toBe('process_decision');
+    expect(evidenceInsightKindSchema.parse('package_suggested_step')).toBe('package_suggested_step');
+    expect(evidenceInsightKindSchema.parse('package_policy_rule')).toBe('package_policy_rule');
+    expect(evidenceInsightKindSchema.safeParse('invoice_line').success).toBe(false);
   });
 });

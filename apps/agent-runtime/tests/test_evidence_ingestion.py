@@ -154,3 +154,48 @@ def test_video_can_select_a_different_transcription_provider() -> None:
 
     assert evidence_worker.audio_transcription_provider == "openai"
     assert evidence_worker.video_transcription_provider == "modal"
+
+
+def test_image_ocr_uses_tesseract_word_confidence(monkeypatch, tmp_path: Path) -> None:
+    evidence_worker = worker()
+    source = tmp_path / "form.png"
+    source.write_bytes(b"fake-image")
+
+    class FakeOutput:
+        DICT = "dict"
+
+    def fake_image_to_data(_path: str, output_type=None):
+        assert output_type == FakeOutput.DICT
+        return {
+            "text": ["", "DISPOSITION", "Reject", ""],
+            "conf": ["-1", "91", "73", "-1"],
+            "block_num": [0, 1, 1, 1],
+            "par_num": [0, 1, 1, 1],
+            "line_num": [0, 1, 2, 2],
+        }
+
+    monkeypatch.setitem(__import__("sys").modules, "pytesseract", type("P", (), {"image_to_data": staticmethod(fake_image_to_data), "Output": FakeOutput})())
+
+    extractions = evidence_worker._extract_image(source, None, None)
+
+    assert len(extractions) == 1
+    assert extractions[0]["kind"] == "ocr"
+    assert extractions[0]["content"] == "DISPOSITION\nReject"
+    assert extractions[0]["confidence"] == 0.82  # mean of 0.91 and 0.73
+    assert not any(item["kind"] == "visual" for item in extractions)
+
+
+def test_image_ocr_returns_empty_when_tesseract_finds_no_words(monkeypatch, tmp_path: Path) -> None:
+    evidence_worker = worker()
+    source = tmp_path / "blank.png"
+    source.write_bytes(b"fake-image")
+
+    class FakeOutput:
+        DICT = "dict"
+
+    def fake_image_to_data(_path: str, output_type=None):
+        return {"text": ["", ""], "conf": ["-1", "-1"], "block_num": [0, 0], "par_num": [0, 0], "line_num": [0, 0]}
+
+    monkeypatch.setitem(__import__("sys").modules, "pytesseract", type("P", (), {"image_to_data": staticmethod(fake_image_to_data), "Output": FakeOutput})())
+
+    assert evidence_worker._extract_image(source, None, None) == []

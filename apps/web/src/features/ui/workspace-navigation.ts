@@ -1,6 +1,6 @@
-export const workspaceNavigationLabels = ['Sources', 'Understand', 'Clarify', 'Review', 'Build', 'Test', 'Approve', 'Operate'] as const;
+export const workspaceNavigationLabels = ['Sources', 'Understand', 'Clarify', 'Review', 'Build', 'Test', 'Approve', 'Operate', 'Impact'] as const;
 export type WorkspaceNavigationLabel = (typeof workspaceNavigationLabels)[number];
-export type WorkspaceNavigationState = { readonly workflowVersionId?: string; readonly confirmedWorkflowVersionId?: string };
+export type WorkspaceNavigationState = { readonly workflowVersionId?: string; readonly confirmedWorkflowVersionId?: string; readonly projectName?: string };
 
 export function workspaceHref(label: WorkspaceNavigationLabel, projectId?: string, navigation: WorkspaceNavigationState = {}): string {
   const workflowVersionId = navigation.workflowVersionId;
@@ -13,5 +13,6 @@ export function workspaceHref(label: WorkspaceNavigationLabel, projectId?: strin
   if (label === 'Build') return buildVersionId ? `/projects/${projectId}/workflow-versions/${buildVersionId}/build` : workflowVersionId ? `/workflow-versions/${workflowVersionId}/clarify?projectId=${encodeURIComponent(projectId)}` : `/projects/${projectId}/evidence`;
   if (label === 'Test') return `/projects/${projectId}/evaluations`;
   if (label === 'Approve') return `/projects/${projectId}/approvals`;
-  return `/projects/${projectId}/operate`;
+  if (label === 'Operate') return `/projects/${projectId}/operate`;
+  return `/projects/${projectId}/impact`;
 }

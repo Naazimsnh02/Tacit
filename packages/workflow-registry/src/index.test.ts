@@ -11,4 +11,11 @@ describe('WorkflowRegistry', () => {
     registry.register(samplePack);
     expect(registry.get('sample')).toBe(samplePack);
   });
+
+  it('falls back to the configured generic pack for unknown workflow types', () => {
+    const registry = new WorkflowRegistry();
+    registry.register(samplePack);
+    registry.setFallback('sample');
+    expect(registry.get('unknown_future_type')).toBe(samplePack);
+  });
 });

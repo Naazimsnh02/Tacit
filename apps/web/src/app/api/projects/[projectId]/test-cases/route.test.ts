@@ -18,7 +18,7 @@ afterEach(() => {
 });
 
 describe('historical-case import API', () => {
-  it('imports pack-valid cases only when their evidence filenames resolve in the project', async () => {
+  it('imports process-agnostic cases when evidence filenames resolve in the project', async () => {
     process.env.NEXT_PUBLIC_SUPABASE_URL = 'https://example.supabase.co';
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = 'anon-key';
     process.env.SUPABASE_SERVICE_ROLE_KEY = 'service-key';
@@ -26,17 +26,20 @@ describe('historical-case import API', () => {
       .mockResolvedValueOnce(new Response(JSON.stringify([{ id: projectId, organization_id: organizationId, mode: 'production' }])))
       .mockResolvedValueOnce(new Response(JSON.stringify({ id: actorId })))
       .mockResolvedValueOnce(new Response(JSON.stringify([{ role: 'owner' }])))
-      .mockResolvedValueOnce(new Response(JSON.stringify([{ workflow_type: 'invoice_exception' }])))
+      .mockResolvedValueOnce(new Response(JSON.stringify([{ id: projectId }])))
       .mockResolvedValueOnce(new Response(JSON.stringify([])))
-      .mockResolvedValueOnce(new Response(JSON.stringify([{ id: extractionId, evidence_artifacts: { filename: 'invoice.md', display_name: 'Invoice' } }])))
+      .mockResolvedValueOnce(new Response(JSON.stringify([{ id: extractionId, evidence_artifacts: { filename: '01-sop-customer-refund-escalation.md', display_name: 'SOP' } }])))
       .mockResolvedValueOnce(new Response(null, { status: 201 }))
       .mockResolvedValueOnce(new Response(null, { status: 201 }));
     globalThis.fetch = fetchMock;
 
+    // Support-shaped payload must import even if the project was created under a legacy type.
     const response = await POST(new Request(`http://localhost/api/projects/${projectId}/test-cases`, {
       method: 'POST', headers: { Authorization: 'Bearer token', 'Content-Type': 'application/json' }, body: JSON.stringify({ cases: [{
-        label: 'Hold damaged delivery', evidenceFiles: ['invoice.md'], expectedOutcome: { decision: 'hold', reason: 'Damaged delivery.' },
-        input: { invoiceReference: 'INV-1', purchaseOrderReference: 'PO-1', invoiceQuantity: 2, purchaseOrderQuantity: 2, invoiceUnitPrice: 100, purchaseOrderUnitPrice: 100, deliveryConfirmed: true, invoiceValue: 200, duplicateInvoice: false, emailApproval: 'none' },
+        label: 'VIP refund requires manager approval',
+        evidenceFiles: ['01-sop-customer-refund-escalation.md'],
+        expectedOutcome: { decision: 'manager_approval', reason: 'VIP and amount above threshold.' },
+        input: { ticketReference: 'TKT-88421', accountTier: 'VIP', requestedRefundAmount: 780, slaMissed: true },
       }] }),
     }), { params: Promise.resolve({ projectId }) });
 
@@ -44,5 +47,6 @@ describe('historical-case import API', () => {
     expect(await response.json()).toEqual({ imported: 1 });
     const [, insert] = fetchMock.mock.calls[6];
     expect(String(insert.body)).toContain(extractionId);
+    expect(String(insert.body)).toContain('TKT-88421');
   });
 });

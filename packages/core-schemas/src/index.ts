@@ -70,8 +70,34 @@ export const extractedEvidenceSchema = z.object({
   confidence: z.number().min(0).max(1), sourceArtifactVersion: z.string().min(1), createdAt: timestampSchema,
 });
 
-/** Durable, model-produced understanding of an immutable source segment. */
-export const evidenceInsightKindSchema = z.enum(['source_classification', 'summary', 'entity', 'fact', 'table_structure', 'system_context']);
+/** Durable, model-produced understanding of an immutable source segment or package. */
+export const evidenceInsightKindSchema = z.enum([
+  'source_classification',
+  'summary',
+  'entity',
+  'fact',
+  'table_structure',
+  'system_context',
+  // Per-source process structure (domain-agnostic)
+  'source_role',
+  'process_objective',
+  'process_step',
+  'process_decision',
+  'threshold',
+  'actor',
+  'exception',
+  'never_automate',
+  'case_field',
+  // Cross-source package synthesis (domain-agnostic)
+  'package_objective',
+  'package_primary_case',
+  'package_policy_rule',
+  'package_case_fact',
+  'package_suggested_step',
+  'package_missing',
+  'package_never_automate',
+  'package_contradiction',
+]);
 export const evidenceInsightSchema = z.object({
   id: identifierSchema, projectId: identifierSchema, artifactId: identifierSchema.nullable(), kind: evidenceInsightKindSchema,
   content: z.string().min(1), entityType: z.string().min(1).nullable(), entityValue: z.string().min(1).nullable(),

@@ -50,7 +50,7 @@ Source → Understand → Clarify → Review → Build → Test → Approve → 
 | Stage | What happens |
 | --- | --- |
 | **Source** | Upload process materials: SOPs, documents, spreadsheets, images, audio, and video. Files are checksum-verified, scan-gated, extracted, and retained with provenance. |
-| **Understand** | One action treats ready sources as a completed knowledge-transfer package. Tacit builds source intelligence (classifications, entities, facts, relationships), creates a system observation, and reconstructs a cited first workflow draft. |
+| **Understand** | One action treats ready sources as a completed knowledge-transfer package. Tacit builds process-aware source intelligence (roles, steps, decisions, thresholds, entities, facts, relationships), synthesizes a package-level process draft, creates a system observation, and reconstructs a cited first workflow draft. |
 | **Clarify** | Ranked questions resolve only the decisions that still matter: policy ambiguity, risk, missing evidence, and automation boundaries. Answers create a new workflow version. |
 | **Review** | Inspect the workflow graph, claim evidence states, branches, and approval requirements. Natural-language change requests become structured proposals that must be accepted before they apply. |
 | **Build** | After confirmation, Codex compiles deterministic decision code and focused tests from the typed workflow specification only, never from raw, unreviewed uploads. |
@@ -66,7 +66,7 @@ Advanced live expert capture remains available when the automatic path still nee
 | --- | --- |
 | Knowledge transfer to AI | Experts hand over process knowledge the way they would to a human; Tacit turns that package into a workflow draft. |
 | Automated process understanding | Ready sources become a cited first workflow without manual step-by-step entry. |
-| Multimodal source intelligence | Classifications, summaries, entities, facts, and cross-source relationships are stored with extraction citations. |
+| Multimodal source intelligence | Process-aware classifications, steps, decisions, thresholds, entities, facts, cross-source relationships, and package synthesis drafts are stored with extraction citations. |
 | Evidence-backed discovery | Every inferred rule, exception, contradiction, and recommendation points back to durable source segments. |
 | Expert clarification | Priority questions, assignees, and deferrals resolve only the ambiguities that affect safety. |
 | Conversational workflow edits | Plain-language change requests produce typed patches, risk notes, and new versions on accept. |
@@ -270,6 +270,8 @@ docker build -f apps/agent-runtime/Dockerfile.sandbox -t tacit-agent-sandbox:lat
 docker compose up --build -d
 docker compose logs -f web codex-runner agent-runtime ingestion-worker source-intelligence-worker
 ```
+
+`NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` must be present in the repository-root `.env` **before** the web image builds. Next.js inlines those values into the browser bundle at `next build`; runtime-only container env is not enough for client sign-in. After changing either value, rebuild the web image (`docker compose up --build -d` or `docker compose build web --no-cache`).
 
 For the Codex subscription backend, perform the device login once after the runner is healthy:
 

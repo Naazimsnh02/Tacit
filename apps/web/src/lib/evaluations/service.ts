@@ -34,6 +34,7 @@ export async function replayHistoricalCases(input: {
 }): Promise<{ testRunId: string; metrics: EvaluationMetrics }> {
   const build = await input.repository.getBuild({ projectId: input.projectId, buildId: input.buildId });
   if (!build) throw new EvaluationInputError('A successful generated build is required before historical replay.');
+  // Pack lookup remains only for optional domain evaluateCase helpers. Case I/O is process-agnostic.
   const pack = input.registry.get(build.workflowType);
   const testCases = await input.repository.getTestCases(input.projectId);
   if (testCases.length === 0) throw new EvaluationInputError('This project has no historical cases to replay.');
@@ -43,16 +44,16 @@ export async function replayHistoricalCases(input: {
   try {
     for (const rawTestCase of testCases) {
       const testCase = testCaseSchema.parse(rawTestCase);
-      const validInput = pack.inputSchema.safeParse(testCase.input);
       let outcome: Record<string, unknown> | null = null;
       let executionError: string | null = null;
-      if (!validInput.success) executionError = 'The historical case input does not satisfy this workflow pack.';
-      else {
-        const execution = await input.executor.execute(build.id, validInput.data as Record<string, unknown>);
+      if (!testCase.input || typeof testCase.input !== 'object' || Array.isArray(testCase.input) || Object.keys(testCase.input).length === 0) {
+        executionError = 'The historical case input must be a non-empty JSON object.';
+      } else {
+        const execution = await input.executor.execute(build.id, testCase.input as Record<string, unknown>);
         outcome = execution.outcome;
         executionError = execution.error;
-        if (outcome && !pack.outcomeSchema.safeParse(outcome).success) {
-          executionError = 'The generated agent returned an invalid workflow outcome.';
+        if (outcome && (typeof outcome !== 'object' || Array.isArray(outcome))) {
+          executionError = 'The generated agent did not return a JSON object outcome.';
           outcome = null;
         }
       }
@@ -119,8 +120,44 @@ export function createReplayImpactSnapshot(input: {
 
 function defaultAssessment(testCase: TestCase, outcome: Record<string, unknown> | null, executionError: string | null) {
   if (executionError) return { matchCategory: 'execution_failure' as const, appliedRuleIds: [], evidenceIds: testCase.evidenceIds, confidence: null, failureExplanation: executionError, suggestedNextStep: 'Inspect the build output and rerun the case.' };
-  if (JSON.stringify(outcome) === JSON.stringify(testCase.expectedOutcome)) return { matchCategory: 'exact_match' as const, appliedRuleIds: [], evidenceIds: testCase.evidenceIds, confidence: 1, failureExplanation: null, suggestedNextStep: null };
+  if (outcomesMatch(outcome, testCase.expectedOutcome)) {
+    return { matchCategory: 'exact_match' as const, appliedRuleIds: [], evidenceIds: testCase.evidenceIds, confidence: 1, failureExplanation: null, suggestedNextStep: null };
+  }
+  // Decision-aligned human-review paths count as correct escalations when the label also required review.
+  if (isHumanReviewDecision(outcome?.decision) && isHumanReviewDecision(testCase.expectedOutcome.decision)) {
+    return {
+      matchCategory: 'correct_escalation' as const,
+      appliedRuleIds: [],
+      evidenceIds: testCase.evidenceIds,
+      confidence: 0.9,
+      failureExplanation: null,
+      suggestedNextStep: null,
+    };
+  }
   return { matchCategory: 'incorrect' as const, appliedRuleIds: [], evidenceIds: testCase.evidenceIds, confidence: 0, failureExplanation: 'The generated outcome differs from the labelled historical outcome.', suggestedNextStep: 'Review the case and add the corrected behavior to the generated agent.' };
+}
+
+function outcomesMatch(actual: Record<string, unknown> | null, expected: Record<string, unknown>): boolean {
+  if (!actual) return false;
+  if (JSON.stringify(actual) === JSON.stringify(expected)) return true;
+  // Process-agnostic: match on decision (+ reason when both present) without requiring identical extra keys.
+  const actualDecision = normalizeDecision(actual.decision);
+  const expectedDecision = normalizeDecision(expected.decision);
+  if (!actualDecision || !expectedDecision || actualDecision !== expectedDecision) return false;
+  const actualReason = typeof actual.reason === 'string' ? actual.reason.trim() : null;
+  const expectedReason = typeof expected.reason === 'string' ? expected.reason.trim() : null;
+  if (actualReason && expectedReason) return actualReason === expectedReason;
+  return true;
+}
+
+function normalizeDecision(value: unknown): string | null {
+  return typeof value === 'string' && value.trim() ? value.trim().toLowerCase() : null;
+}
+
+function isHumanReviewDecision(value: unknown): boolean {
+  const decision = normalizeDecision(value);
+  if (!decision) return false;
+  return decision.includes('approval') || decision.includes('escalate') || decision.includes('hold') || decision.includes('review') || decision.includes('trust');
 }
 
 function isPassing(category: EvaluationMatchCategory) {
