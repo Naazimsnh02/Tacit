@@ -1,19 +1,68 @@
+# Dependencies
 node_modules/
+
+# Build outputs
 .next/
-coverage/
+out/
+build/
 dist/
+coverage/
+*.tsbuildinfo
 .tsbuildinfo
+
+# Test / reports
 playwright-report/
 test-results/
+*.log
+htmlcov/
+.coverage
+.coverage.*
+.nyc_output/
+
+# Environment / secrets
 .env
-.env.local
-generated/
+.env.*
+!.env.example
+
+# Local generated artifacts (keep placeholder only)
+/generated/*
+!/generated/.gitkeep
+evidence-packs/
+
+# Python
 .venv/
+.venv-*/
+venv/
 __pycache__/
 .pytest_cache/
-*.pyc
+.ruff_cache/
+.mypy_cache/
+.uv-cache/
+*.py[cod]
+*$py.class
 *.egg-info/
-*.tsbuildinfo
-generated/*/*/
-!generated/.gitkeep
-evidence-packs/
+.eggs/
+*.egg
+
+# Local tooling / agent state
+.agents/
+.codex/
+.cursor/
+.claude/
+.turbo/
+.cache/
+
+# IDE / OS
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Docs and markdown (keep only root README.md)
+docs/
+*.md
+!/README.md

@@ -27,7 +27,7 @@ export async function GET(request: Request, context: { params: Promise<{ project
       },
       evidence: extractions.map((extraction) => {
         const artifact = extraction.evidence_artifacts as Row;
-        const range = extraction.page_start !== null ? `Page ${String(extraction.page_start)}${extraction.page_end && extraction.page_end !== extraction.page_start ? `–${String(extraction.page_end)}` : ''}` : extraction.time_start_ms !== null ? `${Math.floor(Number(extraction.time_start_ms) / 1000)}s` : String(extraction.kind);
+        const range = extraction.page_start !== null ? `Page ${String(extraction.page_start)}${extraction.page_end && extraction.page_end !== extraction.page_start ? `-${String(extraction.page_end)}` : ''}` : extraction.time_start_ms !== null ? `${Math.floor(Number(extraction.time_start_ms) / 1000)}s` : String(extraction.kind);
         return { id: String(extraction.id), title: String(artifact.display_name), detail: `${String(extraction.kind)} · ${range}` };
       }),
     });

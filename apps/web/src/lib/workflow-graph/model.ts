@@ -11,6 +11,7 @@ export interface WorkflowGraphNodeDetail {
   readonly rule: string | null;
   readonly confidence: number | null;
   readonly evidenceIds: readonly string[];
+  readonly evidence?: readonly { readonly id: string; readonly label: string }[];
   readonly automationRecommendation: AutomationRecommendation;
   readonly riskLevel: 'low' | 'medium' | 'high' | null;
   readonly verificationStatus: 'inferred' | 'confirmed' | 'unverified' | null;

@@ -39,7 +39,7 @@ export function ObservationTimelineView({ events, actions, evidence, narration }
         <label className="field-label" style={{ margin: '5px 0 0 auto' }}>Source <select className="select" value={source} onChange={(event) => setSource(event.target.value as typeof source)}><option value="all">All sources</option><option value="user">User</option><option value="system">System</option><option value="import">Import</option></select></label>
       </div>
       {items.length === 0 ? <p className="empty">Recorded actions will appear here as the observation progresses.</p> : <ol style={{ listStyle: 'none', padding: 0, margin: 0 }}>
-        {items.map((item) => <li key={item.id}><button className="timeline-item" onClick={() => setSelected(item)}><strong>{displayTime(item.occurredAt)}</strong> <span className="muted">— {view === 'semantic' ? item.semanticStep : item.action}</span><br /><small>{item.source} · {item.events.length} event{item.events.length === 1 ? '' : 's'}</small></button></li>)}
+        {items.map((item) => <li key={item.id}><button className="timeline-item" onClick={() => setSelected(item)}><strong>{displayTime(item.occurredAt)}</strong> <span className="muted">· {view === 'semantic' ? item.semanticStep : item.action}</span><br /><small>{item.source} · {item.events.length} event{item.events.length === 1 ? '' : 's'}</small></button></li>)}
       </ol>}
     </Panel>
     {selectedEvent && <Panel title="Evidence detail">

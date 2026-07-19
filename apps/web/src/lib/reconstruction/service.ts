@@ -2,6 +2,7 @@ import {
   extractedEvidenceSchema,
   workflowEventSchema,
   workflowReconstructionSchema,
+  type EvidenceInsight,
   type ExtractedEvidence,
   type ObservationSession,
   type WorkflowEvent,
@@ -19,6 +20,7 @@ export interface ReconstructionRepository {
   getSession(sessionId: string, projectId: string): Promise<ObservationSession | null>;
   getEvents(sessionId: string): Promise<readonly WorkflowEvent[]>;
   getEvidence(projectId: string): Promise<readonly ExtractedEvidence[]>;
+  getEvidenceInsights?(projectId: string): Promise<readonly EvidenceInsight[]>;
   nextWorkflowVersion(projectId: string): Promise<number>;
   saveWorkflowVersion(value: {
     projectId: string; version: number; specification: WorkflowReconstruction;
@@ -45,8 +47,8 @@ export async function reconstructWorkflow(input: {
   if (!session) throw new ReconstructionInputError('Observation session not found for this project.');
   if (session.status !== 'completed') throw new ReconstructionInputError('Complete the observation session before reconstructing a workflow.');
 
-  const [events, evidence] = await Promise.all([
-    input.repository.getEvents(session.id), input.repository.getEvidence(project.id),
+  const [events, evidence, sourceInsights] = await Promise.all([
+    input.repository.getEvents(session.id), input.repository.getEvidence(project.id), input.repository.getEvidenceInsights?.(project.id) ?? [],
   ]);
   const parsedEvents = events.map((event) => workflowEventSchema.parse(event));
   const parsedEvidence = evidence.map((item) => extractedEvidenceSchema.parse(item));
@@ -55,6 +57,7 @@ export async function reconstructWorkflow(input: {
   const evidenceIds = new Set(parsedEvidence.map((item) => item.id));
   const prompt = createWorkflowReconstructionPrompt({
     promptContext: workflowPack.promptContext, session, events: parsedEvents, evidence: parsedEvidence,
+    sourceInsights,
     finalDecision: input.finalDecision,
   });
   let reconstruction: WorkflowReconstruction;

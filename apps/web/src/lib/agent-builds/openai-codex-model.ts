@@ -39,7 +39,10 @@ export function createConfiguredAgentBuildModel(): CodexModel | undefined {
 /** Calls the configured Codex-capable model through Responses with a strict output contract. */
 export function createOpenAiCodexModel(): CodexModel | undefined {
   const apiKey = process.env.OPENAI_API_KEY;
-  const model = process.env.OPENAI_CODEX_MODEL;
+  // Pilot deployments may use one approved Responses model for both workflow
+  // reasoning and constrained compilation. A dedicated Codex model still wins
+  // whenever it is explicitly configured.
+  const model = process.env.OPENAI_CODEX_MODEL || process.env.OPENAI_REASONING_MODEL;
   if (!apiKey || !model) return undefined;
   return {
     async generate(prompt): Promise<CodexGeneration> {

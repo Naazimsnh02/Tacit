@@ -57,7 +57,7 @@ export const evidenceArtifactSchema = z.object({
   scanStatus: evidenceScanStatusSchema, processingConsentAt: timestampSchema, retentionExpiresAt: timestampSchema.nullable(),
   failureReason: z.string().min(1).nullable(), createdAt: timestampSchema, updatedAt: timestampSchema,
 });
-export const evidenceExtractionKindSchema = z.enum(['text', 'ocr', 'transcript', 'frame', 'spreadsheet']);
+export const evidenceExtractionKindSchema = z.enum(['text', 'ocr', 'transcript', 'frame', 'spreadsheet', 'visual']);
 export const evidenceCitationSchema = z.object({
   artifactId: identifierSchema, extractionId: identifierSchema, pageStart: z.number().int().positive().nullable(),
   pageEnd: z.number().int().positive().nullable(), timeStartMs: z.number().int().nonnegative().nullable(),
@@ -68,6 +68,33 @@ export const extractedEvidenceSchema = z.object({
   pageStart: z.number().int().positive().nullable(), pageEnd: z.number().int().positive().nullable(),
   timeStartMs: z.number().int().nonnegative().nullable(), timeEndMs: z.number().int().nonnegative().nullable(),
   confidence: z.number().min(0).max(1), sourceArtifactVersion: z.string().min(1), createdAt: timestampSchema,
+});
+
+/** Durable, model-produced understanding of an immutable source segment. */
+export const evidenceInsightKindSchema = z.enum(['source_classification', 'summary', 'entity', 'fact', 'table_structure', 'system_context']);
+export const evidenceInsightSchema = z.object({
+  id: identifierSchema, projectId: identifierSchema, artifactId: identifierSchema.nullable(), kind: evidenceInsightKindSchema,
+  content: z.string().min(1), entityType: z.string().min(1).nullable(), entityValue: z.string().min(1).nullable(),
+  confidence: z.number().min(0).max(1), extractionIds: z.array(identifierSchema).min(1), modelRole: z.string().min(1), modelVersion: z.string().min(1), createdAt: timestampSchema,
+});
+export const evidenceRelationshipTypeSchema = z.enum(['supports', 'contradicts', 'references', 'same_entity', 'precedes']);
+export const evidenceRelationshipSchema = z.object({
+  id: identifierSchema, projectId: identifierSchema, fromInsightId: identifierSchema, toInsightId: identifierSchema,
+  type: evidenceRelationshipTypeSchema, rationale: z.string().min(1), extractionIds: z.array(identifierSchema).min(1), confidence: z.number().min(0).max(1), createdAt: timestampSchema,
+});
+export const workflowClaimEvidenceStateSchema = z.enum(['confirmed', 'strongly_inferred', 'weakly_inferred', 'contradictory', 'missing_evidence', 'requires_expert_confirmation']);
+export const workflowClaimSchema = z.object({
+  id: identifierSchema, workflowVersionId: identifierSchema, claimType: z.enum(['step', 'rule', 'decision', 'assumption']), claimKey: z.string().min(1),
+  statement: z.string().min(1), evidenceState: workflowClaimEvidenceStateSchema, confidence: z.number().min(0).max(1).nullable(), extractionIds: z.array(identifierSchema), createdAt: timestampSchema,
+});
+export const workflowChangeProposalStatusSchema = z.enum(['pending', 'accepted', 'rejected', 'superseded']);
+export const workflowChangeProposalSchema = z.object({
+  id: identifierSchema, projectId: identifierSchema, workflowVersionId: identifierSchema, requestedChange: z.string().min(1), patch: z.array(z.object({ op: z.enum(['add', 'replace', 'remove']), path: z.string().min(1), value: z.unknown().optional() })),
+  affectedRuleIds: z.array(z.string().min(1)), impact: jsonObjectSchema, riskLevel: z.enum(['low', 'medium', 'high']), status: workflowChangeProposalStatusSchema, proposedBy: identifierSchema.nullable(), resultingWorkflowVersionId: identifierSchema.nullable(), createdAt: timestampSchema, decidedAt: timestampSchema.nullable(),
+});
+export const clarificationAssignmentStatusSchema = z.enum(['open', 'deferred', 'answered']);
+export const clarificationAssignmentSchema = z.object({
+  id: identifierSchema, questionId: identifierSchema, assigneeId: identifierSchema.nullable(), deferReason: z.string().min(1).nullable(), dueAt: timestampSchema.nullable(), attachmentExtractionIds: z.array(identifierSchema), status: clarificationAssignmentStatusSchema, createdAt: timestampSchema, updatedAt: timestampSchema,
 });
 
 export const automationBoundarySchema = z.enum(['deterministic', 'ai_judgment', 'human_approval', 'unsupported']);
@@ -283,6 +310,13 @@ export type EvidenceArtifactType = z.infer<typeof evidenceArtifactTypeSchema>;
 export type EvidenceArtifactStatus = z.infer<typeof evidenceArtifactStatusSchema>;
 export type EvidenceCitation = z.infer<typeof evidenceCitationSchema>;
 export type ExtractedEvidence = z.infer<typeof extractedEvidenceSchema>;
+export type EvidenceInsight = z.infer<typeof evidenceInsightSchema>;
+export type EvidenceInsightKind = z.infer<typeof evidenceInsightKindSchema>;
+export type EvidenceRelationship = z.infer<typeof evidenceRelationshipSchema>;
+export type WorkflowClaim = z.infer<typeof workflowClaimSchema>;
+export type WorkflowClaimEvidenceState = z.infer<typeof workflowClaimEvidenceStateSchema>;
+export type WorkflowChangeProposal = z.infer<typeof workflowChangeProposalSchema>;
+export type ClarificationAssignment = z.infer<typeof clarificationAssignmentSchema>;
 export type WorkflowStep = z.infer<typeof workflowStepSchema>;
 export type WorkflowReconstruction = z.infer<typeof workflowReconstructionSchema>;
 export type ReconstructedWorkflowStep = z.infer<typeof reconstructedWorkflowStepSchema>;

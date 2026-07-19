@@ -26,6 +26,7 @@ export function EvaluationDashboard({ projectId }: { readonly projectId: string 
   const [runningSupervised, setRunningSupervised] = useState(false);
   const [importing, setImporting] = useState(false);
   const [importMessage, setImportMessage] = useState<string | null>(null);
+  const [plannedTests, setPlannedTests] = useState<readonly { label: string; category: string; expected: string }[]>([]);
 
   async function loadCases() {
     try {
@@ -41,6 +42,10 @@ export function EvaluationDashboard({ projectId }: { readonly projectId: string 
 
   useEffect(() => {
     void loadCases();
+    void fetch(`/api/projects/${projectId}/test-plan`, { headers: productionHeaders() }).then(async (response) => {
+      const body = await response.json() as { tests?: { label: string; category: string; expected: string }[] };
+      if (response.ok) setPlannedTests(body.tests ?? []);
+    }).catch(() => undefined);
   }, [projectId]);
 
   async function replay() {
@@ -82,6 +87,7 @@ export function EvaluationDashboard({ projectId }: { readonly projectId: string 
   }
 
   return <section className="stack">
+    <section className="card card-subtle"><h2>Source-derived test plan</h2><p className="muted">Tacit combines labelled history with workflow boundaries, contradictions, and missing-evidence scenarios. Repairs rerun only the cases affected by an accepted change.</p>{plannedTests.length ? <ul className="list-compact">{plannedTests.map((test) => <li key={`${test.category}-${test.label}`}><span className="status status-info">{test.category.replaceAll('_', ' ')}</span> <strong>{test.label}</strong><div className="muted">{test.expected}</div></li>)}</ul> : <p className="empty">Confirm a workflow draft to generate its test plan.</p>}</section>
     <section className="card">
       <div className="card-header"><div><h2>Historical replay</h2><p className="muted">Replay labelled, tenant-owned historical cases against the latest promoted generated build.</p></div><button className="btn btn-primary" type="button" disabled={running || caseCount === 0} title={caseCount === 0 ? 'Import labelled historical cases before replaying.' : undefined} onClick={() => { void replay(); }}>{running ? 'Replaying…' : 'Replay historical cases'}</button></div>
       {running ? <p className="status status-info" role="status">Running labelled project cases and comparing evidence-backed outcomes…</p> : null}
@@ -94,6 +100,6 @@ export function EvaluationDashboard({ projectId }: { readonly projectId: string 
     </section>
     {caseCount !== null ? <section className="card"><h2>{caseCount === 0 ? 'Import labelled historical cases' : 'Import additional historical cases'}</h2><p className="muted">Use a CSV with <code>label</code>, <code>input_json</code>, <code>expected_outcome_json</code>, and <code>evidence_files</code>. Evidence files must exactly match ready files already uploaded to this project.</p><label><span className="field-label">Historical-case CSV</span><input className="input" type="file" accept=".csv,text/csv" disabled={importing} onChange={(event) => { void importCases(event.target.files?.[0] ?? null); event.currentTarget.value = ''; }} /></label>{importMessage ? <p className="notice" role="status">{importMessage}</p> : null}</section> : null}
     {error ? <RecoverableError message={error} onRetry={() => { void replay(); }} /> : null}
-    {metrics ? <section className="stack"><div className="header-actions" style={{ justifyContent: 'flex-start' }}><StatusBadge status={metrics.incorrectCases > 0 ? 'tests_failed' : 'verified'} />{runId ? <a className="btn btn-secondary" href={`/test-runs/${runId}?projectId=${encodeURIComponent(projectId)}`}>Inspect replay results</a> : null}</div><dl className="metric-grid" aria-label="Evaluation metrics">{metricLabels.map(([key, label]) => <div className="card metric-card" key={key}><dt className="metric-label">{label}</dt><dd className="metric-value">{key.includes('Rate') || key.includes('Coverage') ? `${metrics[key]}%` : metrics[key] ?? '—'}</dd><p className="metric-context">Latest replay</p></div>)}</dl></section> : null}
+    {metrics ? <section className="stack"><div className="header-actions" style={{ justifyContent: 'flex-start' }}><StatusBadge status={metrics.incorrectCases > 0 ? 'tests_failed' : 'verified'} />{runId ? <a className="btn btn-secondary" href={`/test-runs/${runId}?projectId=${encodeURIComponent(projectId)}`}>Inspect replay results</a> : null}</div><dl className="metric-grid" aria-label="Evaluation metrics">{metricLabels.map(([key, label]) => <div className="card metric-card" key={key}><dt className="metric-label">{label}</dt><dd className="metric-value">{key.includes('Rate') || key.includes('Coverage') ? `${metrics[key]}%` : metrics[key] ?? 'n/a'}</dd><p className="metric-context">Latest replay</p></div>)}</dl></section> : null}
   </section>;
 }

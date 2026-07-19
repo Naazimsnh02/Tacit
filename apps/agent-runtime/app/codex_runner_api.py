@@ -1,18 +1,39 @@
 from __future__ import annotations
 
 import asyncio
+import base64
 import os
 from contextlib import asynccontextmanager
+from typing import Literal
 
 from fastapi import FastAPI, Header, HTTPException
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
-from .codex_runner import CodexAppServer, CodexAuthenticationRequired, CodexRunnerError, request_is_authorized
+from .codex_runner import (
+    SUPPORTED_IMAGE_MEDIA_TYPES,
+    CodexAppServer,
+    CodexAuthenticationRequired,
+    CodexInputImage,
+    CodexRunnerError,
+    request_is_authorized,
+)
+
+
+class GenerateImage(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
+    extraction_id: str | None = Field(default=None, alias="extractionId", max_length=200)
+    media_type: Literal["image/jpeg", "image/png", "image/webp"] = Field(alias="mediaType")
+    base64: str = Field(min_length=4, max_length=16_000_000)
 
 
 class GenerateRequest(BaseModel):
-    purpose: str = Field(pattern="^(workflow_reconstruction|agent_compilation)$")
+    purpose: str = Field(
+        pattern="^(workflow_reconstruction|agent_compilation|source_intelligence|cross_source_understanding)$"
+    )
     prompt: str = Field(min_length=1, max_length=512_000)
+    images: list[GenerateImage] = Field(default_factory=list, max_length=64)
+    detail: Literal["low", "high", "original"] | None = None
 
 
 class DeviceLoginState:
@@ -41,6 +62,40 @@ def _model() -> str:
     if not value:
         raise HTTPException(status_code=503, detail="Codex subscription model is not configured.")
     return value
+
+
+def _positive_int_env(name: str, default: int) -> int:
+    try:
+        value = int(os.environ.get(name, str(default)))
+    except ValueError as error:
+        raise HTTPException(status_code=503, detail=f"{name} is invalid.") from error
+    if value <= 0:
+        raise HTTPException(status_code=503, detail=f"{name} is invalid.")
+    return value
+
+
+def decoded_images(images: list[GenerateImage], purpose: str) -> list[CodexInputImage]:
+    if images and purpose != "source_intelligence":
+        raise HTTPException(status_code=422, detail="Codex runner images are allowed only for source intelligence.")
+    max_images = _positive_int_env("CODEX_SUBSCRIPTION_MAX_IMAGES", 8)
+    max_encoded_bytes = _positive_int_env("CODEX_SUBSCRIPTION_MAX_IMAGE_PAYLOAD_BYTES", 12_000_000)
+    if len(images) > max_images:
+        raise HTTPException(status_code=422, detail="Too many images for one Codex runner request.")
+    encoded_bytes = sum(len(image.base64) for image in images)
+    if encoded_bytes > max_encoded_bytes:
+        raise HTTPException(status_code=422, detail="Codex runner image payload is too large.")
+    result: list[CodexInputImage] = []
+    for image in images:
+        if image.media_type not in SUPPORTED_IMAGE_MEDIA_TYPES:
+            raise HTTPException(status_code=422, detail="Unsupported Codex runner image media type.")
+        try:
+            value = base64.b64decode(image.base64, validate=True)
+        except (ValueError, TypeError) as error:
+            raise HTTPException(status_code=422, detail="Codex runner image payload is not valid base64.") from error
+        if not value:
+            raise HTTPException(status_code=422, detail="Codex runner image payload is empty.")
+        result.append(CodexInputImage(media_type=image.media_type, data=value, extraction_id=image.extraction_id))
+    return result
 
 
 @asynccontextmanager
@@ -107,10 +162,11 @@ async def start_device_login(x_tacit_codex_runner_secret: str | None = Header(de
 @app.post("/codex/generate")
 async def generate(request: GenerateRequest, x_tacit_codex_runner_secret: str | None = Header(default=None)) -> dict[str, object]:
     _authorize(x_tacit_codex_runner_secret)
+    images = decoded_images(request.images, request.purpose)
     server = CodexAppServer(timeout_seconds=int(os.environ.get("CODEX_SUBSCRIPTION_TIMEOUT_SECONDS", "120")))
     try:
         await server.start()
-        result = await server.generate(request.prompt, _model())
+        result = await server.generate(request.prompt, _model(), images=images, detail=request.detail)
         return {"output": result.output, "model": result.model, "response_id": result.response_id, "usage": result.usage}
     except CodexAuthenticationRequired as error:
         raise HTTPException(status_code=503, detail=str(error)) from error

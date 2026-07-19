@@ -1,0 +1,8 @@
+import { NextResponse } from 'next/server';
+import { z } from 'zod';
+import { addOperatingObservation, latestWorkflowVersion } from '../../../../../lib/ai-first/repository';
+import { authorizeProjectRequest, errorResponse, serviceRequest } from '../../../../../lib/platform/api';
+
+const requestSchema = z.object({ kind: z.enum(['override', 'new_evidence', 'change_detection', 'outcome']), payload: z.record(z.unknown()).default({}), evidenceIds: z.array(z.string().uuid()).default([]) });
+export async function GET(request: Request, context: { params: Promise<{ projectId: string }> }) { try { const { projectId } = await context.params; await authorizeProjectRequest(request, projectId); return NextResponse.json(await serviceRequest(`operating_observations?project_id=eq.${encodeURIComponent(projectId)}&select=*&order=created_at.desc`)); } catch (error) { return errorResponse(error); } }
+export async function POST(request: Request, context: { params: Promise<{ projectId: string }> }) { try { const { projectId } = await context.params; const access = await authorizeProjectRequest(request, projectId, true); if (!access.actor) return NextResponse.json({ error: 'Sign in is required.' }, { status: 401 }); const body = requestSchema.parse(await request.json()); const workflow = await latestWorkflowVersion(projectId); await addOperatingObservation({ projectId, workflowVersionId: workflow?.id ?? null, kind: body.kind, payload: body.payload, evidenceIds: body.evidenceIds, actorId: access.actor.id }); return NextResponse.json({ status: 'recorded' }, { status: 201 }); } catch (error) { return errorResponse(error); } }

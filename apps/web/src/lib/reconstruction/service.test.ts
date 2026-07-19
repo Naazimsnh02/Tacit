@@ -1,4 +1,4 @@
-import type { ExtractedEvidence, ObservationSession, WorkflowEvent, WorkflowReconstruction } from '@tacit/core-schemas';
+import type { EvidenceInsight, ExtractedEvidence, ObservationSession, WorkflowEvent, WorkflowReconstruction } from '@tacit/core-schemas';
 import { invoiceExceptionWorkflowPack } from '@tacit/workflow-invoice-exception';
 import { WorkflowRegistry } from '@tacit/workflow-registry';
 import { describe, expect, it } from 'vitest';
@@ -56,6 +56,17 @@ describe('reconstructWorkflow', () => {
     const result = await reconstructWorkflow({ projectId, sessionId, finalDecision: 'approve', registry: registry(), repository: store, model: { async reconstruct() { return fallback; } } });
     expect(result.source).toBe('model');
     expect(store.saved).toBe(1);
+  });
+
+  it('passes cited source intelligence to the reconstruction model without accepting it as a citation target', async () => {
+    const store = repository();
+    const insight: EvidenceInsight = { id: '33333333-3333-4333-8333-333333333333', projectId, artifactId: evidence.artifactId, kind: 'fact', content: 'A visual review is required.', entityType: null, entityValue: null, confidence: 0.9, extractionIds: [evidenceId], modelRole: 'source_interpretation', modelVersion: 'configured-vision-model', createdAt: evidence.createdAt };
+    store.getEvidenceInsights = async () => [insight];
+    const fallback = invoiceExceptionWorkflowPack.reconstructionFallback!({ evidenceIds: [evidenceId] }) as WorkflowReconstruction;
+    const prompts: string[] = [];
+    await reconstructWorkflow({ projectId, sessionId, finalDecision: 'approve', registry: registry(), repository: store, model: { async reconstruct(prompt) { prompts.push(prompt); return fallback; } } });
+    expect(prompts[0]).toContain(insight.content);
+    expect(prompts[0]).toContain('source-insight IDs');
   });
 
   it('does not allow production reconstruction to use a seeded fallback', async () => {

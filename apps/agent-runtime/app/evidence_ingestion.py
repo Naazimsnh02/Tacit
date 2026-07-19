@@ -14,6 +14,8 @@ from typing import Any
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
+from .video_sampling import VideoSamplingError, sample_video_frames, video_duration_ms
+
 
 class IngestionError(Exception):
     """A safe, retryable ingestion failure."""
@@ -57,6 +59,9 @@ class EvidenceIngestionWorker:
         self.modal_transcription_url = self.env.get("EVIDENCE_MODAL_TRANSCRIPTION_URL")
         self.modal_proxy_auth_key = self.env.get("EVIDENCE_MODAL_PROXY_AUTH_KEY")
         self.modal_proxy_auth_secret = self.env.get("EVIDENCE_MODAL_PROXY_AUTH_SECRET")
+        self.video_coverage_seconds = int(self.env.get("EVIDENCE_VIDEO_COVERAGE_SECONDS", "15"))
+        self.video_max_frames = int(self.env.get("EVIDENCE_VIDEO_MAX_FRAMES", "60"))
+        self.video_scene_threshold = float(self.env.get("EVIDENCE_VIDEO_SCENE_THRESHOLD", "0.2"))
 
     def _required(self, name: str) -> str:
         value = self.env.get(name)
@@ -312,13 +317,24 @@ class EvidenceIngestionWorker:
         return result
 
     def _extract_image(
-        self, source: Path, start_ms: int | None, end_ms: int | None
+        self, source: Path, start_ms: int | None, end_ms: int | None, *, include_visual: bool = True
     ) -> list[dict[str, Any]]:
         import pytesseract
 
         content = pytesseract.image_to_string(str(source)).strip()
-        return (
-            [
+        result = ([
+            {
+                "kind": "visual",
+                "content": "Image source retained for multimodal interpretation.",
+                "page_start": None,
+                "page_end": None,
+                "time_start_ms": start_ms,
+                "time_end_ms": end_ms,
+                "confidence": 1.0,
+            }
+        ] if include_visual else [])
+        if content:
+            result.append(
                 {
                     "kind": "ocr",
                     "content": content,
@@ -328,67 +344,65 @@ class EvidenceIngestionWorker:
                     "time_end_ms": end_ms,
                     "confidence": 0.8,
                 }
-            ]
-            if content
-            else []
-        )
+            )
+        return result
 
     def _extract_audio(
         self, source: Path, start_ms: int, end_ms: int, provider: str
     ) -> list[dict[str, Any]]:
-        transcript = self._transcribe(source, provider)
-        return (
-            [
-                {
-                    "kind": "transcript",
-                    "content": transcript,
-                    "page_start": None,
-                    "page_end": None,
-                    "time_start_ms": start_ms,
-                    "time_end_ms": end_ms,
-                    "confidence": 0.82,
-                }
-            ]
-            if transcript
-            else []
-        )
+        segments = self._transcribe_segments(source, provider)
+        return [
+            {
+                "kind": "transcript",
+                "content": content,
+                "page_start": None,
+                "page_end": None,
+                "time_start_ms": max(start_ms, start_ms + segment_start),
+                "time_end_ms": min(end_ms, start_ms + segment_end),
+                "confidence": 0.82,
+            }
+            for content, segment_start, segment_end in segments
+            if content and segment_end >= segment_start
+        ]
 
     def _extract_video(self, source: Path, directory: Path) -> list[dict[str, Any]]:
         duration = self._duration_ms(source)
         audio = directory / "audio.mp3"
-        frames = directory / "frames"
-        frames.mkdir()
         self._run_command(
             ["ffmpeg", "-y", "-i", str(source), "-vn", "-ac", "1", "-ar", "16000", str(audio)]
         )
-        self._run_command(
-            ["ffmpeg", "-y", "-i", str(source), "-vf", "fps=1/30", str(frames / "frame-%03d.png")]
+        frames = sample_video_frames(
+            source,
+            directory / "frames",
+            duration_ms=duration,
+            coverage_seconds=self.video_coverage_seconds,
+            max_frames=self.video_max_frames,
+            scene_threshold=self.video_scene_threshold,
         )
         result = self._extract_audio(audio, 0, duration, self.video_transcription_provider)
-        for index, frame in enumerate(sorted(frames.glob("*.png"))):
+        for frame in frames:
+            end_ms = min(frame.time_ms + self.video_coverage_seconds * 1000, duration)
+            result.append(
+                {
+                    "kind": "frame",
+                    "content": f"Video frame sampled at {frame.time_ms / 1000:.3f}s for visual analysis.",
+                    "page_start": None,
+                    "page_end": None,
+                    "time_start_ms": frame.time_ms,
+                    "time_end_ms": end_ms,
+                    "confidence": 1.0,
+                }
+            )
             result.extend(
-                self._extract_image(frame, index * 30_000, min((index + 1) * 30_000, duration))
+                self._extract_image(frame.path, frame.time_ms, end_ms, include_visual=False)
             )
         return result
 
     def _duration_ms(self, source: Path) -> int:
-        completed = subprocess.run(
-            [
-                "ffprobe",
-                "-v",
-                "error",
-                "-show_entries",
-                "format=duration",
-                "-of",
-                "default=noprint_wrappers=1:nokey=1",
-                str(source),
-            ],
-            capture_output=True,
-            text=True,
-            check=True,
-            timeout=30,
-        )
-        return max(1, int(float(completed.stdout.strip()) * 1000))
+        try:
+            return video_duration_ms(source)
+        except VideoSamplingError as error:
+            raise IngestionError("Media processing failed safely.") from error
 
     def _run_command(self, command: list[str]) -> None:
         try:
@@ -404,6 +418,52 @@ class EvidenceIngestionWorker:
         raise IngestionError(
             "Evidence transcription provider must be configured as 'openai' or 'modal'."
         )
+
+    def _transcribe_segments(self, source: Path, provider: str) -> list[tuple[str, int, int]]:
+        if provider != "openai":
+            transcript = self._transcribe(source, provider)
+            return [(transcript, 0, self._duration_ms(source))] if transcript else []
+        if not self.openai_key or not self.transcription_model:
+            raise IngestionError("Transcription is not configured for evidence ingestion.")
+        boundary = f"----Tacit{uuid.uuid4().hex}"
+        payload: list[bytes] = []
+
+        def field(name: str, value: str) -> None:
+            payload.extend([
+                f"--{boundary}\r\n".encode(),
+                f'Content-Disposition: form-data; name="{name}"\r\n\r\n'.encode(),
+                value.encode(),
+                b"\r\n",
+            ])
+
+        field("model", self.transcription_model)
+        field("response_format", "verbose_json")
+        payload.extend([
+            f"--{boundary}\r\n".encode(),
+            'Content-Disposition: form-data; name="file"; filename="audio.mp3"\r\nContent-Type: audio/mpeg\r\n\r\n'.encode(),
+            source.read_bytes(),
+            b"\r\n",
+            f"--{boundary}--\r\n".encode(),
+        ])
+        request = Request("https://api.openai.com/v1/audio/transcriptions", data=b"".join(payload), method="POST")
+        request.add_header("Authorization", f"Bearer {self.openai_key}")
+        request.add_header("Content-Type", f"multipart/form-data; boundary={boundary}")
+        try:
+            with urlopen(request, timeout=120) as response:
+                body = json.loads(response.read().decode())
+        except (HTTPError, URLError, json.JSONDecodeError) as error:
+            raise IngestionError("OpenAI transcription request failed safely.") from error
+        segments = body.get("segments")
+        if isinstance(segments, list):
+            parsed = [
+                (str(segment.get("text", "")).strip(), int(float(segment.get("start", 0)) * 1000), int(float(segment.get("end", 0)) * 1000))
+                for segment in segments
+                if isinstance(segment, dict) and str(segment.get("text", "")).strip()
+            ]
+            if parsed:
+                return parsed
+        transcript = str(body.get("text", "")).strip()
+        return [(transcript, 0, self._duration_ms(source))] if transcript else []
 
     def _transcribe_openai(self, source: Path) -> str:
         if not self.openai_key or not self.transcription_model:
