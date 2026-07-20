@@ -30,7 +30,7 @@ def worker() -> EvidenceIngestionWorker:
     )
 
 
-def test_worker_scans_before_saving_normalized_evidence(monkeypatch) -> None:
+def test_worker_marks_validated_uploads_clean_before_saving_normalized_evidence(monkeypatch) -> None:
     evidence_worker = worker()
     calls: list[str] = []
     monkeypatch.setattr(evidence_worker, "_purge_expired", lambda: calls.append("purge"))
@@ -74,6 +74,13 @@ def test_worker_scans_before_saving_normalized_evidence(monkeypatch) -> None:
         "artifact:ready",
         "complete",
     ]
+
+
+def test_hackathon_scan_is_a_noop_without_clamav(tmp_path: Path) -> None:
+    source = tmp_path / "review.txt"
+    source.write_text("Reviewed invoice exception", encoding="utf-8")
+
+    worker()._scan(source)
 
 
 def test_worker_requeues_a_retryable_failure(monkeypatch) -> None:

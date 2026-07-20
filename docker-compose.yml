@@ -26,7 +26,7 @@ services:
       CODEX_SUBSCRIPTION_RUNNER_SECRET: ${CODEX_SUBSCRIPTION_RUNNER_SECRET:-}
       CODEX_SUBSCRIPTION_MODEL: ${CODEX_SUBSCRIPTION_MODEL:-}
     ports:
-      - "3000:3000"
+      - "127.0.0.1:3000:3000"
     depends_on:
       agent-runtime:
         condition: service_healthy
@@ -58,7 +58,7 @@ services:
     build:
       context: apps/agent-runtime
     ports:
-      - "8000:8000"
+      - "127.0.0.1:8001:8000"
     environment:
       TACIT_GENERATED_ROOT: /generated
       NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL}
@@ -78,7 +78,6 @@ services:
       EVIDENCE_MODAL_TRANSCRIPTION_URL: ${EVIDENCE_MODAL_TRANSCRIPTION_URL:-}
       EVIDENCE_MODAL_PROXY_AUTH_KEY: ${EVIDENCE_MODAL_PROXY_AUTH_KEY:-}
       EVIDENCE_MODAL_PROXY_AUTH_SECRET: ${EVIDENCE_MODAL_PROXY_AUTH_SECRET:-}
-      CLAMAV_HOST: clamav
       AGENT_SANDBOX_IMAGE: ${AGENT_SANDBOX_IMAGE:-tacit-agent-sandbox:latest}
     volumes:
       - ./generated:/generated:ro
@@ -110,11 +109,7 @@ services:
       EVIDENCE_MODAL_TRANSCRIPTION_URL: ${EVIDENCE_MODAL_TRANSCRIPTION_URL:-}
       EVIDENCE_MODAL_PROXY_AUTH_KEY: ${EVIDENCE_MODAL_PROXY_AUTH_KEY:-}
       EVIDENCE_MODAL_PROXY_AUTH_SECRET: ${EVIDENCE_MODAL_PROXY_AUTH_SECRET:-}
-      CLAMAV_HOST: clamav
       EVIDENCE_WORKER_POLL_SECONDS: 5
-    depends_on:
-      clamav:
-        condition: service_healthy
     restart: unless-stopped
   source-intelligence-worker:
     build:
@@ -143,14 +138,6 @@ services:
     depends_on:
       codex-runner:
         condition: service_healthy
-    restart: unless-stopped
-  clamav:
-    image: clamav/clamav:1.4
-    healthcheck:
-      test: ["CMD-SHELL", "clamdscan --version"]
-      interval: 30s
-      timeout: 10s
-      retries: 20
     restart: unless-stopped
 volumes:
   codex-subscription-auth:

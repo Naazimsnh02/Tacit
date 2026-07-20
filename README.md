@@ -32,7 +32,7 @@
   <img alt="Supabase" src="https://img.shields.io/badge/Supabase-Postgres%20%2B%20Storage-3ECF8E?logo=supabase&logoColor=white">
 </p>
 
-> There is no public deployment URL or public demo URL configured in this repository. Run the application locally using the instructions below.
+> **Live demo:** [https://tacit.thryveapps.in](https://tacit.thryveapps.in)
 
 ## AI Development & Model Stack (Codex, GPT-5.6, Terra, & Luma)
 
@@ -225,7 +225,7 @@ The repository includes current application screenshots from the primary workspa
 | Runtime and workers | FastAPI, Python 3.11, Pydantic, and Docker |
 | Data, identity, and storage | Supabase Auth, Postgres, Row Level Security, and private Storage accessed through Supabase APIs |
 | AI | Codex & GPT-5.6 (compilation, clarification), Terra (semantic/contradiction checks), and Luma (vision/visual ingestion paths) |
-| Evidence processing | ClamAV, pypdf, python-docx, openpyxl, Tesseract OCR, FFmpeg, and optional OpenAI or Modal transcription |
+| Evidence processing | pypdf, python-docx, openpyxl, Tesseract OCR, FFmpeg, and optional OpenAI or Modal transcription |
 | Quality | Vitest, Playwright, pytest, Ruff, ESLint, and TypeScript project references |
 
 There is no ORM, hosted deployment configuration, observability vendor, Tailwind dependency, or shadcn/ui dependency in the current repository.
@@ -316,7 +316,7 @@ docker build -f apps/agent-runtime/Dockerfile.sandbox -t tacit-agent-sandbox:lat
 
 ### Run the complete local stack
 
-The Compose stack starts the Next.js web app, FastAPI runtime, ingestion worker, source-intelligence worker, Codex runner, and ClamAV. The sandbox image must already exist.
+The Compose stack starts the Next.js web app, FastAPI runtime, ingestion worker, source-intelligence worker, and private Codex runner. The sandbox image must already exist. For the hackathon deployment, validated evidence uploads are treated as scan-clean; ClamAV is not required.
 
 ```bash
 docker build -f apps/agent-runtime/Dockerfile.sandbox -t tacit-agent-sandbox:latest apps/agent-runtime
@@ -324,7 +324,7 @@ docker compose up --build -d
 docker compose logs -f web codex-runner agent-runtime ingestion-worker source-intelligence-worker
 ```
 
-Open `http://localhost:3000`, sign in at `/projects`, and create an organization and project. The web health endpoint is available at `http://localhost:3000/api/health`; the runtime health endpoint is `http://localhost:8000/health`.
+Open the live deployment at [https://tacit.thryveapps.in](https://tacit.thryveapps.in), or locally at `http://localhost:3000`. Sign in at `/projects`, and create an organization and project. With Compose, the health endpoints are `http://localhost:3000/api/health` and `http://localhost:8001/health`; `npm run runtime:dev` uses port `8000` directly.
 
 `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` must be present in the root `.env` before the web image is built because Next.js inlines public values into the browser bundle.
 
@@ -337,10 +337,10 @@ npm run dev
 npm run runtime:dev
 ```
 
-Evidence ingestion and source understanding still require their supporting services. Start the runner and scanner, then start each worker from `apps/agent-runtime` after installing Python dependencies:
+Evidence ingestion and source understanding still require their supporting services. Start the runner, then start each worker from `apps/agent-runtime` after installing Python dependencies. The hackathon ingestion worker does not require a malware scanner:
 
 ```bash
-docker compose up -d codex-runner clamav
+docker compose up -d codex-runner
 cd apps/agent-runtime
 python -m app.ingestion_worker
 python -m app.source_intelligence_worker
@@ -440,7 +440,7 @@ The in-product **Test** stage is separate from this developer test suite: it eva
 
 ## Deployment model
 
-This repository supports a local, Compose-based production-style topology. It requires Supabase, a configured AI backend, Docker, the agent sandbox image, and the worker services required for the chosen source types. Compose builds the Next.js image and starts web, runtime, workers, private Codex runner, and ClamAV.
+This repository supports a local, Compose-based production-style topology. It requires Supabase, a configured AI backend, Docker, the agent sandbox image, and the worker services required for the chosen source types. Compose builds the Next.js image and starts web, runtime, workers, and the private Codex runner. The hackathon trust model disables malware scanning, so validated uploads process without ClamAV and are marked `scan_status=clean`.
 
 Before deploying to any remote environment, apply the ordered Supabase migrations to that environment, configure storage and auth, provide server-side secrets, build the sandbox image, and ensure the runtime can launch isolated containers. No Vercel, cloud-hosting, CI/CD, or managed worker deployment configuration is committed here.
 
@@ -449,7 +449,7 @@ Before deploying to any remote environment, apply the ordered Supabase migration
 | Status | What it means in this repository |
 | --- | --- |
 | **Implemented production path** | Authenticated organizations and projects; tenant-scoped evidence intake; source extraction/intelligence; workflow drafting, clarification, confirmation, versions, and graph review; constrained builds; historical replay; approval decisions; readiness; operating observations; and impact snapshots. |
-| **Implemented with local infrastructure prerequisites** | Malware scanning, OCR/media extraction, source-intelligence jobs, transcription, isolated generated-agent execution, and the private Codex runner require their configured local or deployed supporting services. |
+| **Implemented with local infrastructure prerequisites** | OCR/media extraction, source-intelligence jobs, transcription, isolated generated-agent execution, and the private Codex runner require their configured local or deployed supporting services. |
 | **Demo only** | `/demo`, Invoice Exception Review seed fixtures, guided demo controls, sample-support fixtures, and `npm run demo:reset`. These are explicitly separated from production projects. |
 | **Not currently exposed as product capabilities** | Link/pasted-text intake, generic desktop capture, customer-facing connector management, arbitrary ERP/SaaS integrations, public hosted deployment, and autonomous high-risk actions. |
 
@@ -457,7 +457,7 @@ Before deploying to any remote environment, apply the ordered Supabase migration
 
 - Supabase Auth and Postgres RLS policies scope organizations, memberships, projects, workflow records, test results, approvals, and Storage access.
 - Project APIs authorize authenticated membership before reading or writing tenant data. Selected mutation routes enforce in-process rate limits.
-- Evidence upload validation checks extension, MIME type, size, checksum, and processing consent; the worker fails closed when the malware scanner is unavailable or rejects a file.
+- Evidence upload validation checks extension, MIME type, size, checksum, and processing consent. Malware scanning is intentionally disabled for the hackathon trust model, so uploads are processed as scan-clean after validation.
 - Generated code is stored under the local generated-artifact root, validated before execution, and run in a restricted ephemeral container as described in [Supervised agent compilation](#supervised-agent-compilation).
 - The app records audit and operational records, but it does not claim SOC 2, ISO 27001, HIPAA, GDPR, or other compliance certification.
 
