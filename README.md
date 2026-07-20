@@ -2,56 +2,238 @@
   <img src="apps/web/public/images/brand/tacit-logo.png" alt="Tacit Logo" width="240" />
 </p>
 
+<h1 align="center">Tacit</h1>
+
 <p align="center">
   <strong>From expert knowledge to trusted AI agents.</strong>
 </p>
 
 <p align="center">
-  <strong>Teach AI how work really gets done.</strong>
-</p>
-
-<p align="center">
-  Tacit learns from your documents, walkthroughs, examples, and expert judgment, then turns that knowledge into a cited workflow and a supervised AI agent your team can inspect, test, and approve.
+  Tacit learns from documents, walkthroughs, examples, and expert judgment, then turns that knowledge into a cited workflow and a supervised AI agent that teams can inspect, test, and approve.
 </p>
 
 <p align="center">
   <a href="#how-tacit-works">How it works</a> ·
-  <a href="#product-capabilities">Capabilities</a> ·
+  <a href="#core-capabilities">Capabilities</a> ·
+  <a href="#codex-and-gpt-56">Codex & GPT-5.6</a> ·
   <a href="#architecture">Architecture</a> ·
-  <a href="#getting-started">Getting started</a> ·
-  <a href="#hackathon">Hackathon</a>
+  <a href="#getting-started">Getting started</a>
 </p>
 
 <p align="center">
   <img alt="OpenAI Build Week" src="https://img.shields.io/badge/OpenAI-Build%20Week-111827?logo=openai&logoColor=white">
   <img alt="Track" src="https://img.shields.io/badge/Track-Work%20%26%20Productivity-2563EB">
-  <img alt="OpenAI Responses API" src="https://img.shields.io/badge/OpenAI-Responses%20API-412991?logo=openai&logoColor=white">
+  <img alt="GPT-5.6" src="https://img.shields.io/badge/Powered%20by-GPT--5.6-412991?logo=openai&logoColor=white">
   <img alt="Codex" src="https://img.shields.io/badge/Built%20with-Codex-0F172A">
-  <img alt="Next.js" src="https://img.shields.io/badge/Next.js-TypeScript-black?logo=next.js">
+  <img alt="Next.js" src="https://img.shields.io/badge/Next.js-15-black?logo=next.js">
   <img alt="FastAPI" src="https://img.shields.io/badge/FastAPI-Python-009688?logo=fastapi">
   <img alt="Supabase" src="https://img.shields.io/badge/Supabase-Postgres%20%2B%20Storage-3ECF8E?logo=supabase&logoColor=white">
+  <img alt="License" src="https://img.shields.io/badge/License-MIT-blue">
 </p>
 
-> **Live demo:** [https://tacit.thryveapps.in](https://tacit.thryveapps.in)  
-> **Demo video:** [https://youtu.be/CCqIR12CTLY](https://youtu.be/CCqIR12CTLY)  
-> **Devpost submission:** [https://devpost.com/software/tacit-automating-uber-s-agentic-pods-with-codex-gpt-5-6](https://devpost.com/software/tacit-automating-uber-s-agentic-pods-with-codex-gpt-5-6)
+> **Live demo:** [tacit.thryveapps.in](https://tacit.thryveapps.in)
+> **Demo video:** [YouTube](https://youtu.be/CCqIR12CTLY)
+> **Devpost:** [Tacit: Automating Uber's Agentic Pods with Codex & GPT-5.6](https://devpost.com/software/tacit-automating-uber-s-agentic-pods-with-codex-gpt-5-6)
 
-## Inspiration: Automating Uber's "Agentic Pods"
+<p align="center">
+  <img src="apps/web/public/images/thumbnail.png" alt="Tacit - Automating Uber's Agentic Pods" width="900" />
+</p>
 
-Uber recently introduced **"Agentic Pods"**, selecting roughly 30 AI-proficient engineers and pairing each one with a domain expert from functions such as finance, legal, HR, operations, and marketing. Each pair received a two-week sprint to observe real workflows and build an AI agent alongside the employee performing it.
+---
 
-While Uber proved that pairing engineers with domain experts yields high-impact agents, doing so manually requires immense engineering headcount and weeks of effort per workflow.
+## Overview
 
-**Tacit was built to automate the Agentic Pod itself.**
+Uber’s **Agentic Pods** pair AI engineers with domain experts to observe real work and build specialized agents.
 
-Instead of spending weeks manually observing employees and writing custom code, Tacit enables domain experts to simply upload their evidence: SOPs, walkthrough videos, spreadsheets, and judgment calls. Tacit extracts cited workflows, flags policy contradictions, asks risk-ranked clarification questions, and compiles supervised, AST-checked Python AI agents automatically.
+The approach can produce valuable agents, but every workflow requires engineers to interview experts, study documents, understand exceptions, write custom code, and test the result.
 
-## AI Development & Model Stack (Codex, GPT-5.6, Terra, & Luna)
+**Tacit automates much of the Agentic Pod itself.**
 
-Tacit was built for the [OpenAI Build Week](https://devpost.com/software/tacit-automating-uber-s-agentic-pods-with-codex-gpt-5-6) in the **Work & Productivity** track. The product demonstrates a complete path from expert knowledge transfer to a cited workflow, a constrained Codex-assisted build, historical replay, and human approval boundaries.
+Domain experts provide the materials they already use:
 
-### Full Development Support
-We used **Codex** and **GPT-5.6** to drive the **full development** of the entire codebase, including frontend/backend design, implementation, and overall development support. They assisted in drafting Next.js components, writing FastAPI code, defining Postgres schemas & RLS policies, designing the AST validation logic, constructing test suites, and configuring background ingestion workers.
+* SOPs and policy documents
+* Spreadsheets
+* Images and screenshots
+* Audio recordings
+* Walkthrough videos
+* Historical cases and real examples
+
+Tacit analyzes the evidence, identifies missing or conflicting information, asks focused clarification questions, creates a cited workflow, and compiles a supervised AI agent.
+
+---
+
+## The problem
+
+Traditional automation often starts with an incomplete SOP.
+
+The knowledge that makes a real process safe usually lives in:
+
+* Exceptions and edge cases
+* Expert judgment
+* Unwritten business rules
+* Workarounds
+* Approval boundaries
+* Decisions to stop and ask for help
+
+AI can generate a plausible workflow even when essential information is missing. Tacit is designed to expose that uncertainty rather than hide it.
+
+Every workflow step, clarification, rule, build, test result, and approval remains connected to supporting evidence.
+
+---
+
+## How Tacit works
+
+1. **Create a project**
+   Start a tenant-owned knowledge-transfer project.
+
+2. **Add source material**
+   Upload documents, spreadsheets, images, audio, videos, and historical examples.
+
+3. **Understand the evidence**
+   Background workers extract content, preserve page or timestamp references, identify relationships, and detect contradictions.
+
+4. **Generate the workflow**
+   Tacit creates a visual workflow containing process steps, decision rules, risks, confidence, and supporting evidence.
+
+5. **Clarify missing knowledge**
+   Risk-ranked questions are shown when Tacit cannot safely determine a rule. Answers create a new workflow version.
+
+6. **Review and confirm**
+   A subject-matter expert reviews the rules, contradictions, automation boundaries, and approval policies.
+
+7. **Build the agent**
+   Tacit generates constrained Python code and tests from the confirmed workflow.
+
+8. **Test and approve**
+   Teams replay historical cases, inspect individual results, and route uncertain decisions to a human approval queue.
+
+9. **Operate with supervision**
+   Deployment readiness, operating feedback, overrides, and impact estimates remain visible and auditable.
+
+---
+
+## Core capabilities
+
+### Multimodal knowledge ingestion
+
+| Source       | Supported formats        | Processing                                     |
+| ------------ | ------------------------ | ---------------------------------------------- |
+| Documents    | PDF, DOCX, TXT, Markdown | Text extraction with source references         |
+| Spreadsheets | CSV, XLSX                | Structured data extraction                     |
+| Images       | PNG, JPG, JPEG, WebP     | Visual analysis and OCR                        |
+| Audio        | MP3, M4A, WAV, WebM      | Timestamped transcription                      |
+| Video        | MP4, MOV, WebM           | Audio transcription and sampled frame analysis |
+
+### Evidence-backed workflows
+
+Tacit generates an interactive workflow where each step can expose:
+
+* Inputs and outputs
+* Decision rules
+* Exceptions
+* Confidence
+* Risk level
+* Automation recommendation
+* Supporting files, pages, and timestamps
+
+### Clarification and version control
+
+Tacit asks questions instead of silently inventing missing rules.
+
+Experts can answer or defer a clarification. Accepted answers and workflow changes create new versions, preserving a complete history of how the process evolved.
+
+### Supervised agent generation
+
+Agents are generated only from a reviewed and confirmed workflow, not directly from raw source files.
+
+Each build includes:
+
+* Generated Python code
+* Generated tests
+* Static validation
+* Repair attempts when validation fails
+* Immutable build artifacts
+* Explicit promotion before use
+
+### Historical replay and approvals
+
+Teams can import labelled historical cases, run them against a promoted agent, inspect the results, and measure accuracy.
+
+Cases requiring human judgment create approval requests containing:
+
+* Agent recommendation
+* Confidence
+* Applied rules
+* Evidence references
+* Agent rationale
+
+### Readiness and impact
+
+Tacit evaluates readiness using:
+
+* Historical replay accuracy
+* Open clarification questions
+* Unresolved contradictions
+* Workflow confirmation state
+* Human-review requirements
+
+The Impact workspace provides conservative estimates for automation coverage, review workload, handling time, discovered rules, and operational value.
+
+---
+
+## Codex and GPT-5.6
+
+Tacit was created for **OpenAI Build Week** in the **Work & Productivity** track.
+
+**Codex and GPT-5.6 were essential both to building the application and to its production workflow.**
+
+### Development
+
+Codex and GPT-5.6 supported development across the complete codebase, including:
+
+* Next.js frontend components
+* FastAPI services
+* PostgreSQL schemas and RLS policies
+* Evidence-processing workers
+* Workflow and validation schemas
+* AST-based runtime safety
+* Unit, integration, and end-to-end tests
+* Documentation and product refinement
+
+### Product workflow
+
+Within Tacit, Codex and GPT-5.6 help:
+
+* Analyze confirmed workflow structures
+* Generate risk-ranked clarification questions
+* Convert approved workflows into executable Python agents
+* Generate expected-behavior and edge-case tests
+* Repair generated code when validation fails
+
+This makes Codex and GPT-5.6 part of the product itself, not only tools used during development.
+
+### Additional model paths
+
+Tacit also supports specialized AI paths:
+
+* **Terra** for semantic analysis, structural extraction, and cross-source contradiction detection
+* **Luna** for image interpretation, video-frame analysis, and visual walkthrough understanding
+
+---
+
+## Application workspace
+
+| Area           | Purpose                                                          |
+| -------------- | ---------------------------------------------------------------- |
+| **Sources**    | Upload, inspect, retry, classify, and delete source material     |
+| **Understand** | Review cited insights and cross-source relationships             |
+| **Clarify**    | Resolve or defer risk-ranked questions                           |
+| **Review**     | Inspect the workflow and propose controlled changes              |
+| **Build**      | Generate, validate, test, repair, and promote an agent           |
+| **Test**       | Replay historical cases and run supervised examples              |
+| **Approve**    | Review decisions requiring human judgment                        |
+| **Operate**    | Evaluate readiness and record operating feedback                 |
+| **Impact**     | Review automation, accuracy, workload, and time-saving estimates |
 
 <details open>
 <summary>Recorded Codex feedback sessions</summary>
@@ -73,371 +255,405 @@ We used **Codex** and **GPT-5.6** to drive the **full development** of the entir
 
 </details>
 
-### Production Model Integration
-The application itself integrates multiple specialized models across its core workflow extraction, validation, and execution processes:
+---
 
-- **Codex & GPT-5.6 (Workflow Synthesis & Code Compilation)**: Used during the *Compilation* and *Clarification* phases to translate confirmed, human-approved workflow graphs into executable Python code (AST-checked scripts) and generate risk-ranked clarification questions.
-- **Terra (Semantic Logic & Contradiction Checks)**: Powers semantic analysis, cross-source contradiction checks, and structural insight extraction inside the **Understand** stage. It analyzes source relationships and identifies conflicting rules before drafting the workflow.
-- **Luna (Visual Context & Ingestion Processing)**: Integrates with the **Sources** ingestion worker to analyze video frame sequences, inspect visual walkthroughs, match screen states against steps, and perform OCR/image parsing on expert materials.
-
-## The problem
-
-SOPs describe the intended process, but the operational knowledge that makes a process safe usually lives elsewhere: judgment calls, workarounds, exceptions, and the moments when a person decides to stop and ask for approval.
-
-Traditional automation often begins with incomplete documentation. Tacit begins with a knowledge transfer package, then keeps the resulting process tied to the evidence and expert decisions that support it. The result is not an opaque recommendation: it is a workflow that can be inspected, clarified, versioned, tested, and governed.
-
-## How Tacit works
-
-The production workspace follows this path:
-
-1. **Create an organization and project.** Signed-in users create tenant-owned projects for a knowledge-transfer effort.
-2. **Add knowledge-transfer materials.** Upload SOPs, documents, spreadsheets, images, audio, and video. Tacit records processing consent, checks files before extraction, and retains page- or timestamp-level source references where available.
-3. **Understand the package.** Background workers extract source material and prepare cited insights, cross-source relationships, and process structure. An optional live-expert workspace can add evidence-linked narration and imported browser events.
-4. **Prepare and clarify the workflow.** Tacit creates a draft workflow from processed sources, then asks risk-ranked questions for rules it cannot safely infer. A response creates a new workflow version; unresolved questions remain supervised.
-5. **Review and confirm policy.** Teams inspect the workflow graph, evidence state, confidence, rules, risk, and automation recommendations. A subject-matter expert must confirm rules, contradictions, automation boundaries, and approval policies before a production build starts.
-6. **Build a supervised agent.** Tacit generates constrained Python artifacts and generated tests from the confirmed workflow, not from raw, unreviewed source files. Static validation and generated tests run before a build can be promoted.
-7. **Test and approve.** Import labelled historical cases, replay a promoted build, inspect per-case results, and run supervised cases. Cases requiring review create approval requests with the agent rationale, applied rules, and evidence references.
-8. **Operate with review.** Deployment-readiness recommendations account for replay accuracy, open clarifications, and contradictions. Operating feedback is retained as evidence and cannot silently alter a promoted workflow.
-
-## Product capabilities
-
-### Knowledge-transfer workspace
-
-Tacit gives each project a dedicated workspace for the material an expert would hand to a new colleague. It accepts these file-based evidence types:
-
-| Source type | Supported formats | Processing in the repository |
-| --- | --- | --- |
-| SOP or document | PDF, DOCX, TXT, Markdown | Text extraction with page references where applicable |
-| Spreadsheet | CSV, XLSX | Structured extraction |
-| Image | PNG, JPG, JPEG, WebP | OCR and source-intelligence processing |
-| Audio | MP3, M4A, WAV, WebM | Configured transcription with timestamped segments |
-| Video | MP4, MOV, WebM | Audio transcription plus sampled visual frames |
-
-Uploads are direct-to-storage after server-side validation. The intake flow requires an explicit consent acknowledgement, shows scan/extraction state, permits deletion, and supports retrying failed processing. 
-
-### Evidence-backed process understanding
-
-Once source files are clean and extracted, Tacit queues source-intelligence jobs. The **Understand** stage displays cited insights, relationships such as support or conflict, confidence, and job status. It prepares a workflow only from the current processed package, so an unchanged package is not silently reinterpreted.
-
-The optional **Add live expert KT** route supplements source understanding with evidence-linked expert notes, manually recorded steps, and imported browser events.
-
-### Clarification, review, and workflow versions
-
-Tacit identifies decision rules, contradictions, confidence, and evidence links in a workflow graph. Selecting a graph node reveals inputs, outputs, evidence, risk, verification state, and its automation recommendation.
-
-Clarification questions are ranked by risk and rule impact. Experts can answer or defer a question; an answer creates a new workflow version, while a deferral keeps the affected decision supervised. The review stage also accepts a plain-language workflow change request, produces a typed change proposal with impact and risk information, and creates a new draft version only after acceptance. Existing builds become stale after an accepted change.
-
-### Supervised agent compilation
-
-The **Build** stage is intentionally gated by SME workflow confirmation. It streams build activity for workflow reading, generation, static analysis, generated tests, repair attempts, immutable-artifact persistence, and promotion.
-
-Generated Python is treated as untrusted. The runtime parses its AST, allows only approved imports, rejects dangerous modules and calls, requires a stable `evaluate(payload)` entry point, and runs validation/tests/execution in a one-shot Docker container with no network, a read-only filesystem, dropped capabilities, an unprivileged user, and bounded CPU, memory, process, file-descriptor, input, and output limits.
-
-### Historical replay, supervised cases, and approvals
-
-The **Test** stage imports labelled historical cases from CSV and creates a source-derived test plan from workflow boundaries, contradictions, and missing-evidence scenarios. Replay compares a promoted build with labelled outcomes and exposes metrics and individual case results. A single supervised case may be run separately; when it requires human review, Tacit creates an approval request rather than treating it as a replay result.
-
-The **Approve** queue records approved, rejected, escalated, or information-requested decisions. Each request exposes the agent recommendation, confidence when available, applied rules, evidence-reference count, and rationale. Decisions are retained in the audit trail.
-
-### Readiness, operating feedback, and impact
-
-**Operate** presents a readiness recommendation based on the latest workflow, replay accuracy, unresolved clarifications, and open contradictions. It can record supervised outcomes, overrides, and other operating observations as evidence for later review. It does not allow that feedback to rewrite an active workflow automatically.
-
-**Impact** presents the latest project snapshot, including workflow steps, safe automation coverage, review rate, rules and exceptions discovered, historical accuracy, and estimated handling-time changes. The screen labels the snapshot as a conservative, transparent estimate; it is not a real-time external analytics integration.
-
-## Application navigation
-
-The authenticated project sidebar contains the following production areas.
-
-| Area | What users can do there |
-| --- | --- |
-| **Sources** | Upload, classify, monitor, retry, inspect, and delete knowledge-transfer files; start source understanding or add live expert KT. |
-| **Understand** | View cited source insights, cross-source relationships, background-job status, and prepare a workflow from the processed package. |
-| **Clarify** | Answer or defer risk-ranked clarification questions and confirm a reviewed workflow for building. |
-| **Review** | Inspect the workflow graph and evidence state; request, review, accept, or reject plain-language change proposals. |
-| **Build** | Generate, validate, test, repair, and explicitly promote a constrained agent build. |
-| **Test** | Import labelled historical cases, view a source-derived test plan, replay a promoted build, and run a supervised case. |
-| **Approve** | Review approval requests and record an approval, rejection, escalation, or request for more information. |
-| **Operate** | Review deployment readiness and retain supervised operating outcomes without silently changing the workflow. |
-| **Impact** | Inspect the latest conservative workflow-impact snapshot and its data sources. |
-
-## How Tacit is governed
-
-Tacit’s control model is implemented as product gates rather than a claim of autonomous operation:
-
-- **Durable evidence:** workflow steps, rules, questions, and approvals retain evidence identifiers. Extracted text carries page spans or media timestamps where applicable.
-- **Explicit uncertainty:** unresolved or deferred clarification questions constrain affected actions to supervision.
-- **Human confirmation:** a production build requires confirmation that rules, contradictions, automation boundaries, and approval policies have been reviewed.
-- **Versioned change:** answered questions and accepted change proposals create workflow versions; they do not edit an already confirmed policy in place.
-- **Promotion and testing:** a build must pass static analysis and generated tests, then be explicitly promoted before historical replay uses it.
-- **Human approval boundaries:** high-risk or human-review outcomes create approval requests for an authenticated user to decide.
-- **Auditability:** organizations, projects, workflow versions, build logs, test runs/results, approvals/actions, impact snapshots, operating observations, and audit events are persisted in the Supabase schema.
-
-These controls do not constitute a compliance certification and Tacit does not perform high-risk external actions such as releasing payments autonomously.
-
-## Product walkthrough
-
-Watch the demo video: [https://youtu.be/CCqIR12CTLY](https://youtu.be/CCqIR12CTLY)
-
-The repository includes current application screenshots from the primary workspace journey.
+## Product screenshots
 
 <p align="center">
-  <img src="apps/web/public/images/screenshots/tacit-sources-input.png" alt="Tacit Sources Input workspace showing file uploading and consent check" width="900">
+  <img src="apps/web/public/images/screenshots/tacit-sources.png" alt="Tacit Sources workspace" width="900">
 </p>
-
-<p align="center"><em>Sources Input: Add process documentation, walkthrough videos, and files to the project.</em></p>
 
 <p align="center">
-  <img src="apps/web/public/images/screenshots/tacit-sources.png" alt="Tacit Sources workspace showing processed knowledge-transfer files and extracted segments" width="900">
+  <em>Sources: Upload and process expert knowledge across supported formats.</em>
 </p>
-
-<p align="center"><em>Sources: Reviewed knowledge-transfer materials retain extraction and processing state.</em></p>
 
 <p align="center">
-  <img src="apps/web/public/images/screenshots/tacit-understand.png" alt="Tacit Understand workspace showing cited insights and source relationships" width="900">
+  <img src="apps/web/public/images/screenshots/tacit-understand.png" alt="Tacit Understand workspace" width="900">
 </p>
-
-<p align="center"><em>Understand: Cited insights, source relationships, and processing status before workflow preparation.</em></p>
 
 <p align="center">
-  <img src="apps/web/public/images/screenshots/tacit-workflow.png" alt="Tacit Review workspace showing a workflow graph and plain-language change proposal area" width="900">
+  <em>Understand: Review cited insights, source relationships, and contradictions.</em>
 </p>
-
-<p align="center"><em>Review: Workflow nodes expose review boundaries, and changes are proposed before creating a new version.</em></p>
 
 <p align="center">
-  <img src="apps/web/public/images/screenshots/tacit-build.png" alt="Tacit Build workspace showing streaming sandbox compilation and AST validation" width="900">
+  <img src="apps/web/public/images/screenshots/tacit-workflow.png" alt="Tacit workflow review" width="900">
 </p>
-
-<p align="center"><em>Build: Stream sandbox compilation, AST validation, and test runner execution for the agent.</em></p>
 
 <p align="center">
-  <img src="apps/web/public/images/screenshots/tacit-test.png" alt="Tacit Test workspace showing a source-derived test plan" width="900">
+  <em>Review: Inspect workflow steps, evidence, risks, and automation boundaries.</em>
 </p>
-
-<p align="center"><em>Test: Source-derived boundaries and labelled history support replay before wider use.</em></p>
 
 <p align="center">
-  <img src="apps/web/public/images/screenshots/tacit-approve.png" alt="Tacit Approve workspace showing audit logs and human-in-the-loop manual override queues" width="900">
+  <img src="apps/web/public/images/screenshots/tacit-build.png" alt="Tacit agent build workspace" width="900">
 </p>
-
-<p align="center"><em>Approve: Audit logs and human-in-the-loop manual override queues for policy governance.</em></p>
 
 <p align="center">
-  <img src="apps/web/public/images/screenshots/tacit-impact.png" alt="Tacit Impact workspace showing real-time business metrics tracking" width="900">
+  <em>Build: Generate and validate constrained agent code.</em>
 </p>
 
-<p align="center"><em>Impact: Real-time business metrics tracking automation rate, accuracy, and operational savings.</em></p>
+<p align="center">
+  <img src="apps/web/public/images/screenshots/tacit-test.png" alt="Tacit testing workspace" width="900">
+</p>
+
+<p align="center">
+  <em>Test: Replay historical cases before broader use.</em>
+</p>
+
+<p align="center">
+  <img src="apps/web/public/images/screenshots/tacit-approve.png" alt="Tacit approval workspace" width="900">
+</p>
+
+<p align="center">
+  <em>Approve: Keep high-risk and uncertain decisions under human control.</em>
+</p>
+
+<p align="center">
+  <img src="apps/web/public/images/screenshots/tacit-impact.png" alt="Tacit impact workspace" width="900">
+</p>
+
+<p align="center">
+  <em>Impact: Review conservative estimates for automation, accuracy, workload, and operational savings.</em>
+</p>
+
+---
 
 ## Technology stack
 
-| Area | Implementation |
-| --- | --- |
-| Web application | Next.js 15 App Router, React 19, TypeScript, and custom CSS components |
-| Workflow visualisation | React Flow via `@xyflow/react` |
-| Application APIs | Next.js route handlers with Zod validation and build-progress streaming |
-| Runtime and workers | FastAPI, Python 3.11, Pydantic, and Docker |
-| Data, identity, and storage | Supabase Auth, Postgres, Row Level Security, and private Storage accessed through Supabase APIs |
-| AI | Codex & GPT-5.6 (compilation, clarification), Terra (semantic/contradiction checks), and Luna (vision/visual ingestion paths) |
-| Evidence processing | pypdf, python-docx, openpyxl, Tesseract OCR, FFmpeg, and optional OpenAI or Modal transcription |
-| Quality | Vitest, Playwright, pytest, Ruff, ESLint, and TypeScript project references |
+| Area                | Technology                                      |
+| ------------------- | ----------------------------------------------- |
+| Frontend            | Next.js 15, React 19, TypeScript                |
+| Workflow UI         | React Flow via `@xyflow/react`                  |
+| API layer           | Next.js route handlers, Zod, FastAPI            |
+| Runtime             | Python 3.11, Pydantic, Docker                   |
+| Authentication      | Supabase Auth                                   |
+| Database            | Supabase Postgres with Row Level Security       |
+| Storage             | Private Supabase Storage                        |
+| AI                  | Codex, GPT-5.6, Terra, Luna                     |
+| Evidence processing | pypdf, python-docx, openpyxl, Tesseract, FFmpeg |
+| Testing             | Vitest, Playwright, pytest, Ruff, ESLint        |
 
-There is no ORM, hosted deployment configuration, observability vendor, Tailwind dependency, or shadcn/ui dependency in the current repository.
+---
 
 ## Architecture
 
 ```mermaid
 flowchart LR
-  U[Authenticated user] --> W[Next.js web application]
-  W --> A[Supabase Auth]
-  W --> P[Supabase Postgres with RLS]
-  W --> S[Private Supabase Storage]
+    U[Authenticated user] --> W[Next.js application]
 
-  S --> I[Ingestion worker\nscan and extract]
-  I --> E[Evidence extractions]
-  E --> X[Source-intelligence worker]
-  X --> P
+    W --> A[Supabase Auth]
+    W --> P[Supabase Postgres and RLS]
+    W --> S[Private Supabase Storage]
 
-  W --> F[Workflow, clarification,\nversions, approvals]
-  F --> P
-  F --> L[Configured LLM backend]
-  L --> O[OpenAI Responses API]
-  L --> C[Private Codex subscription runner]
+    S --> I[Ingestion worker]
+    I --> E[Evidence records]
+    E --> X[Source-intelligence worker]
+    X --> P
 
-  F --> B[Agent build service]
-  B --> R[FastAPI runtime]
-  R --> D[Ephemeral restricted\nDocker sandbox]
+    W --> F[Workflow and clarification services]
+    F --> M[Codex and GPT-5.6]
+    F --> P
+
+    F --> B[Agent build service]
+    B --> R[FastAPI runtime]
+    R --> D[Restricted Docker sandbox]
+
+    D --> T[Tests and historical replay]
+    T --> H[Human approval queue]
 ```
 
-The workspace persists generic project, evidence, observation, workflow, build, evaluation, approval, and impact records. Workflow-specific schemas and demo data are loaded through workflow packs. The first detailed pack is **Invoice Exception Review**; a separate sample-support pack supplies a demo fixture. The core project creation path uses `generic_process` and does not add invoice fields to the shared model.
+### Data flow
 
-## Data and AI flow
+1. A user uploads validated source files.
+2. Workers extract text, structured data, transcripts, and visual frames.
+3. Source intelligence creates cited insights and relationships.
+4. Tacit generates an evidence-backed draft workflow.
+5. Experts resolve important questions and confirm policy boundaries.
+6. Codex and GPT-5.6 generate a constrained agent and tests.
+7. The runtime validates and executes the agent in an isolated container.
+8. Test results, approvals, and operating feedback are stored for review.
 
-1. A project member uploads validated source files after acknowledging processing consent.
-2. The ingestion worker scans the source, extracts text/transcripts/frames, and stores durable extraction records.
-3. The source-intelligence worker interprets scan-cleared sources into cited insights and relationships.
-4. Tacit turns the processed package (and, when used, live expert KT events) into a draft workflow with evidence references.
-5. Experts resolve high-impact questions and explicitly confirm policy boundaries.
-6. The configured model generates a constrained agent and tests from the confirmed typed workflow.
-7. The FastAPI runtime statically validates and executes generated artifacts inside the restricted container.
-8. Historical replay, approval outcomes, readiness assessments, and operating observations create records for review; new operating feedback remains separate until a reviewed change is accepted.
+---
+
+## Safety and governance
+
+Generated code is treated as untrusted.
+
+Before execution, Tacit:
+
+* Parses the Python abstract syntax tree
+* Allows only approved imports
+* Rejects dangerous modules and functions
+* Requires a stable `evaluate(payload)` entry point
+* Runs generated code without network access
+* Uses a read-only filesystem
+* Drops container capabilities
+* Runs as an unprivileged user
+* Enforces CPU, memory, process, file, input, output, and time limits
+
+Additional controls include:
+
+* Evidence-linked workflow rules
+* Explicit uncertainty and contradiction states
+* Human confirmation before building
+* Versioned workflow changes
+* Static checks and generated tests
+* Explicit build promotion
+* Human approval boundaries
+* Tenant isolation through Supabase RLS
+* Persistent audit records
+
+Tacit does not claim a compliance certification and does not autonomously perform high-risk actions such as releasing payments.
+
+---
 
 ## Getting started
 
 ### Prerequisites
 
-- Node.js 20+ and npm 10+ (the repository uses `package-lock.json`)
-- Python 3.11+
-- Docker Desktop, including permission to run local containers
-- A Supabase project with Auth, Postgres, and Storage
-- An AI configuration: OpenAI API credentials and approved model IDs, or a private Codex-subscription runner configuration
+Install or configure:
 
-### Install dependencies
+* Node.js 20+
+* npm 10+
+* Python 3.11+
+* Docker Desktop
+* A Supabase project
+* An approved AI backend:
+
+  * OpenAI API credentials and model IDs, or
+  * A private Codex subscription runner
+
+### 1. Clone the repository
 
 ```bash
-npm install
+git clone <repository-url>
+cd tacit
+```
+
+### 2. Install dependencies
+
+```bash
+npm ci
 python -m pip install -e apps/agent-runtime
 python -m pip install ruff
 ```
 
-### Configure environment files
+### 3. Create environment files
 
-Copy the supplied templates. The root `.env` is used by Docker Compose and Python workers; `apps/web/.env.local` is used when running Next.js outside Compose.
+macOS or Linux:
 
 ```bash
 cp .env.example .env
 cp apps/web/.env.local.example apps/web/.env.local
 ```
 
-On Windows PowerShell:
+Windows PowerShell:
 
 ```powershell
 Copy-Item .env.example .env
 Copy-Item apps/web/.env.local.example apps/web/.env.local
 ```
 
-Configure the variables described in [Environment variables](#environment-variables). Keep service-role keys, model-provider credentials, and runner secrets out of client code and source control.
+The root `.env` is used by Docker Compose and its workers. `apps/web/.env.local` is used when Next.js runs outside Compose. Put the same required Supabase and AI values in both when using the corresponding mode.
 
-### Prepare Supabase and the sandbox
+Never expose service-role keys, model credentials, or runner secrets in client code or source control.
 
-Apply the ordered SQL files in `supabase/migrations/` using the approved migration workflow for the target Supabase environment. The repository does not include a Supabase CLI configuration, so it does not prescribe a `supabase db push` command.
+### 4. Prepare Supabase
 
-Build the image used by the isolated generated-agent runtime:
+For a new Supabase project, enable email/password Auth and add the local or deployed application URL to the Auth redirect/site-URL settings. Then apply the repository migrations; this initializes tenant isolation, storage policies, evidence jobs, and the production workspace schema.
 
 ```bash
-docker build -f apps/agent-runtime/Dockerfile.sandbox -t tacit-agent-sandbox:latest apps/agent-runtime
+npx supabase init
+npx supabase login
+npx supabase link --project-ref <your-project-ref>
+npx supabase db push --dry-run
+npx supabase db push
 ```
 
-### Run the complete local stack
+Use a new or otherwise empty project for this flow. Do not run `db reset` against a project containing real customer data. The migration files are kept in `supabase/migrations/` and are applied in timestamp order.
 
-The Compose stack starts the Next.js web app, FastAPI runtime, ingestion worker, source-intelligence worker, and private Codex runner. The sandbox image must already exist. For the hackathon deployment, validated evidence uploads are treated as scan-clean; ClamAV is not required.
+### 5. Build the agent sandbox
 
 ```bash
-docker build -f apps/agent-runtime/Dockerfile.sandbox -t tacit-agent-sandbox:latest apps/agent-runtime
+docker build \
+  -f apps/agent-runtime/Dockerfile.sandbox \
+  -t tacit-agent-sandbox:latest \
+  apps/agent-runtime
+```
+
+### 6. Start the complete stack
+
+```bash
 docker compose up --build -d
-docker compose logs -f web codex-runner agent-runtime ingestion-worker source-intelligence-worker
 ```
 
-Open the live deployment at [https://tacit.thryveapps.in](https://tacit.thryveapps.in), or locally at `http://localhost:3000`. Sign in at `/projects`, and create an organization and project. With Compose, the health endpoints are `http://localhost:3000/api/health` and `http://localhost:8001/health`; `npm run runtime:dev` uses port `8000` directly.
+The full production path requires all five services: `web`, `agent-runtime`, `ingestion-worker`, `source-intelligence-worker`, and `codex-runner`. The two `NEXT_PUBLIC_SUPABASE_*` values must be present in the root `.env` before this command because Next.js embeds them when building the web image.
 
-`NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` must be present in the root `.env` before the web image is built because Next.js inlines public values into the browser bundle.
+View service logs:
 
-### Run web and runtime locally
+```bash
+docker compose logs -f \
+  web \
+  codex-runner \
+  agent-runtime \
+  ingestion-worker \
+  source-intelligence-worker
+```
 
-For UI and runtime development without starting the whole Compose topology:
+Open:
+
+```text
+http://localhost:3000
+```
+
+Health endpoints:
+
+```text
+http://localhost:3000/api/health
+http://localhost:8001/health
+```
+
+Open `http://localhost:3000/projects`, create or sign in to a real account, create an organization and project, and upload source evidence. This is the same authenticated product path used in the submitted deployment.
+
+---
+
+## Codex subscription runner
+
+Tacit supports a private Codex subscription runner as an alternative AI backend.
+
+Set:
+
+```env
+LLM_BACKEND=codex_subscription
+CODEX_SUBSCRIPTION_RUNNER_URL=http://codex-runner:8100
+CODEX_SUBSCRIPTION_RUNNER_SECRET=<strong-random-secret>
+CODEX_SUBSCRIPTION_MODEL=<configured-model>
+```
+
+Start the runner:
+
+```bash
+docker compose up -d codex-runner
+```
+
+Complete the one-time device-code login:
+
+```bash
+docker compose exec codex-runner python -m app.codex_login
+```
+
+Inside Compose, the runner URL is `http://codex-runner:8100`. When running a web process outside Compose, use `http://localhost:8100`. Compose binds the runner to loopback (`127.0.0.1:8100`) and stores authentication state in the `codex-subscription-auth` Docker volume.
+
+Do not expose the runner publicly or share its credential volume.
+
+---
+
+## OpenAI API backend
+
+To use the OpenAI API path:
+
+```env
+LLM_BACKEND=openai_api
+OPENAI_API_KEY=<your-server-side-key>
+
+OPENAI_REASONING_MODEL=<approved-model-id>
+OPENAI_DEFAULT_MODEL=<approved-model-id>
+OPENAI_FAST_MODEL=<approved-model-id>
+OPENAI_CODEX_MODEL=<approved-model-id>
+```
+
+Model identifiers are configured through environment variables rather than hardcoded into the application.
+
+---
+
+## Important environment variables
+
+| Variable                           | Purpose                              |
+| ---------------------------------- | ------------------------------------ |
+| `NEXT_PUBLIC_SUPABASE_URL`         | Supabase project URL                 |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY`    | Browser authentication key           |
+| `SUPABASE_SERVICE_ROLE_KEY`        | Server and worker access             |
+| `AGENT_RUNTIME_URL`                | FastAPI runtime URL                  |
+| `LLM_BACKEND`                      | `openai_api` or `codex_subscription` |
+| `OPENAI_API_KEY`                   | Server-side OpenAI credential        |
+| `OPENAI_REASONING_MODEL`           | Reasoning model ID                   |
+| `OPENAI_CODEX_MODEL`               | Code-generation model ID             |
+| `CODEX_SUBSCRIPTION_RUNNER_URL`    | Private Codex runner endpoint        |
+| `CODEX_SUBSCRIPTION_RUNNER_SECRET` | Shared runner secret                 |
+| `CODEX_SUBSCRIPTION_MODEL`         | Codex subscription model             |
+| `EVIDENCE_TRANSCRIPTION_MODEL`     | Audio and video transcription model  |
+| `EVIDENCE_VISION_MODEL`            | Vision-capable source model          |
+| `AGENT_SANDBOX_IMAGE`              | Docker sandbox image                 |
+| `AGENT_EXECUTION_TIMEOUT_SECONDS`  | Agent execution timeout              |
+| `NEXT_PUBLIC_DEMO_MODE_ENABLED`    | Enables the seeded demo route        |
+
+Refer to `.env.example` and `apps/web/.env.local.example` for the complete configuration.
+
+---
+
+## Local development
+
+For the real end-to-end path, prefer the Compose instructions above because they start the runtime and both durable-evidence workers with the required environment. For focused UI/runtime development, start these in separate terminals:
 
 ```bash
 npm run dev
 npm run runtime:dev
 ```
 
-Evidence ingestion and source understanding still require their supporting services. Start the runner, then start each worker from `apps/agent-runtime` after installing Python dependencies. The hackathon ingestion worker does not require a malware scanner:
+`npm run dev` reads `apps/web/.env.local`. Python does not automatically read `.env`; export the root environment before running workers directly, or use Compose. To run workers outside Compose after exporting that environment:
 
 ```bash
 docker compose up -d codex-runner
+
 cd apps/agent-runtime
 python -m app.ingestion_worker
 python -m app.source_intelligence_worker
 ```
 
-### Use the Codex-subscription runner
-
-When `LLM_BACKEND=codex_subscription`, set the runner URL, secret, and model in both applicable environment files. Start the private runner and complete its one-time device-code sign-in:
-
-```bash
-docker compose up -d codex-runner
-docker compose exec codex-runner python -m app.codex_login
-```
-
-The runner is exposed only on loopback by Compose and keeps its sign-in state in the named `codex-subscription-auth` Docker volume. Do not expose it publicly or share its credential volume.
-
-## Environment variables
-
-The following table is derived from `.env.example`, `apps/web/.env.local.example`, the Next.js environment validator, Compose configuration, and the Python workers. Empty values in the templates are placeholders.
-
-| Variable | Required | Purpose |
-| --- | --- | --- |
-| `NEXT_PUBLIC_SUPABASE_URL` | Yes | Supabase project URL; used by browser auth and server persistence. |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Yes | Supabase anonymous key for browser authentication. |
-| `SUPABASE_SERVICE_ROLE_KEY` | Yes, server only | Server/worker access to Supabase persistence and Storage. Never expose it to the browser. |
-| `AGENT_RUNTIME_URL` | Yes | Base URL for the FastAPI generated-agent runtime. |
-| `LLM_BACKEND` | Yes | Choose `openai_api` (default) or `codex_subscription`. |
-| `OPENAI_API_KEY` | Required for `openai_api`; also required for OpenAI transcription or source intelligence | Server-side OpenAI credential. |
-| `OPENAI_REASONING_MODEL`, `OPENAI_DEFAULT_MODEL`, `OPENAI_FAST_MODEL`, `OPENAI_CODEX_MODEL` | Required when `LLM_BACKEND=openai_api` | Environment-configured model IDs validated by the web application. |
-| `CODEX_SUBSCRIPTION_RUNNER_URL`, `CODEX_SUBSCRIPTION_RUNNER_SECRET`, `CODEX_SUBSCRIPTION_MODEL` | Required when `LLM_BACKEND=codex_subscription` | Private runner endpoint, 32+-character shared secret, and configured subscription model. |
-| `CODEX_SUBSCRIPTION_TIMEOUT_SECONDS`, `CODEX_SUBSCRIPTION_MAX_IMAGES`, `CODEX_SUBSCRIPTION_MAX_IMAGE_PAYLOAD_BYTES` | Optional | Limits for the private runner; defaults are supplied by Compose/template. |
-| `EVIDENCE_TRANSCRIPTION_MODEL` | Required when audio/video use OpenAI transcription | Configured OpenAI transcription model ID. |
-| `EVIDENCE_TRANSCRIPTION_PROVIDER` | Optional | Default transcription provider: `openai` or `modal`. |
-| `EVIDENCE_AUDIO_TRANSCRIPTION_PROVIDER`, `EVIDENCE_VIDEO_TRANSCRIPTION_PROVIDER` | Optional | Override the default provider for audio or video. |
-| `EVIDENCE_MODAL_TRANSCRIPTION_URL`, `EVIDENCE_MODAL_PROXY_AUTH_KEY`, `EVIDENCE_MODAL_PROXY_AUTH_SECRET` | Required only for Modal transcription | Modal transcription endpoint and server-side credentials. |
-| `EVIDENCE_SOURCE_INTELLIGENCE_BACKEND`, `EVIDENCE_VISION_MODEL` | Required for the corresponding configured source-intelligence path | Select an explicit source-intelligence backend when needed and supply its vision-capable model. |
-| `EVIDENCE_VISION_DETAIL`, `EVIDENCE_VISION_ESCALATION_DETAIL`, `EVIDENCE_VISION_MIN_CONFIDENCE`, `EVIDENCE_SOURCE_MAX_TEXT_CHARS` | Optional | Source-intelligence detail, confidence, and text limits. |
-| `EVIDENCE_VIDEO_COVERAGE_SECONDS`, `EVIDENCE_VIDEO_MAX_FRAMES`, `EVIDENCE_VIDEO_SCENE_THRESHOLD`, `EVIDENCE_VIDEO_FRAME_BATCH_SIZE` | Optional | Video sampling and visual-analysis limits. |
-| `EVIDENCE_WORKER_POLL_SECONDS`, `SOURCE_INTELLIGENCE_WORKER_POLL_SECONDS` | Optional | Worker polling intervals; Compose supplies defaults. |
-| `AGENT_EXECUTION_TIMEOUT_SECONDS`, `AGENT_SANDBOX_IMAGE` | Optional | Generated-agent execution timeout and sandbox image name. |
-| `PILOT_MAX_ACTIVE_PROJECTS_PER_ORGANIZATION` | Optional | Per-organization active-project limit; defaults to `5`. |
-| `NEXT_PUBLIC_DEMO_MODE_ENABLED` | Optional | Enables the explicit seeded `/demo` route; defaults to `true`. |
+---
 
 ## Project structure
 
 ```text
 apps/
-  web/                         Next.js UI, authenticated routes, and API handlers
-  agent-runtime/               FastAPI runtime, ingestion, and source-intelligence workers
+  web/                         Next.js UI and API routes
+  agent-runtime/               FastAPI runtime and workers
+
 packages/
-  core-schemas/                Shared Zod contracts for platform records
-  prompts/                     Prompt construction shared by product services
-  workflow-sdk/                Workflow-pack definitions and utilities
-  workflow-registry/           Pack registration and lookup
+  core-schemas/                Shared application contracts
+  prompts/                     Prompt construction
+  workflow-sdk/                Workflow-pack utilities
+  workflow-registry/           Workflow-pack registration
+
 supabase/
-  migrations/                  Postgres, RLS, Storage, audit, and worker-job migrations
-scripts/                       Seed and explicit demo-reset scripts
-generated/                     Local generated-agent workspaces and artifacts
+  migrations/                  Database, RLS, Storage, and audit migrations
+
+scripts/                       Seed and demo-reset scripts
+generated/                     Local generated-agent artifacts
 ```
 
-## Available scripts
+---
 
-Run these commands from the repository root.
+## Available commands
 
-| Command | Purpose |
-| --- | --- |
-| `npm run dev` | Start the Next.js web app. |
-| `npm run build` | Create the production web build. |
-| `npm run lint` | Run ESLint across the repository. |
-| `npm run typecheck` | Run the TypeScript project-reference build. |
-| `npm run test` | Run Vitest unit and integration tests. |
-| `npm run test:e2e` | Run Playwright end-to-end tests. |
-| `npm run seed` | Run the repository seed script with `.env` if present. |
-| `npm run demo:reset` | Explicitly reset seeded demo data; do not use this against customer data. |
-| `npm run runtime:dev` | Start the FastAPI runtime with reload. |
-| `npm run runtime:lint` | Run Ruff on the agent runtime. |
-| `npm run runtime:test` | Run pytest for the agent runtime. |
+| Command                | Purpose                              |
+| ---------------------- | ------------------------------------ |
+| `npm run dev`          | Start the Next.js development server |
+| `npm run build`        | Build the production web application |
+| `npm run lint`         | Run ESLint                           |
+| `npm run typecheck`    | Run TypeScript checks                |
+| `npm run test`         | Run Vitest tests                     |
+| `npm run test:e2e`     | Run Playwright tests                 |
+| `npm run runtime:dev`  | Start FastAPI with reload            |
+| `npm run runtime:lint` | Run Ruff                             |
+| `npm run runtime:test` | Run pytest                           |
+| `npm run seed`         | Seed local data                      |
+| `npm run demo:reset`   | Reset explicit demo data             |
 
-## Testing and quality
+---
 
-The repository includes Vitest coverage for shared schemas, workflow packs, source understanding, reconstruction, clarification, agent builds, API routes, tenant access, evidence processing, and navigation; Playwright configuration for web end-to-end tests; and pytest coverage for the Python runtime and sandbox checks.
+## Testing
 
-Run the standard checks:
+Run the standard quality checks:
 
 ```bash
 npm run lint
@@ -448,24 +664,73 @@ npm run runtime:test
 npm run build
 ```
 
-`npm run test:e2e` starts the web test server on port 3100 through Playwright. It may require valid local environment configuration for routes that depend on Supabase or other services.
+Run end-to-end tests:
 
-The in-product **Test** stage is separate from this developer test suite: it evaluates a promoted generated build against tenant-owned labelled historical cases and source-derived boundaries.
+```bash
+npx playwright install chromium
+npm run test:e2e
+```
 
-## Deployment model
+The developer test suite is separate from Tacit’s in-product Test workspace, which evaluates promoted agents against tenant-owned historical cases.
 
-This repository supports a local, Compose-based production-style topology. It requires Supabase, a configured AI backend, Docker, the agent sandbox image, and the worker services required for the chosen source types. Compose builds the Next.js image and starts web, runtime, workers, and the private Codex runner. The hackathon trust model disables malware scanning, so validated uploads process without ClamAV and are marked `scan_status=clean`.
+---
 
-Before deploying to any remote environment, apply the ordered Supabase migrations to that environment, configure storage and auth, provide server-side secrets, build the sandbox image, and ensure the runtime can launch isolated containers. No Vercel, cloud-hosting, CI/CD, or managed worker deployment configuration is committed here.
+## Deployment notes
 
-## Security and responsible use
+The repository supports a local, production-style Docker Compose topology containing:
 
-- Supabase Auth and Postgres RLS policies scope organizations, memberships, projects, workflow records, test results, approvals, and Storage access.
-- Project APIs authorize authenticated membership before reading or writing tenant data. Selected mutation routes enforce in-process rate limits.
-- Evidence upload validation checks extension, MIME type, size, checksum, and processing consent. Malware scanning is intentionally disabled for the hackathon trust model, so uploads are processed as scan-clean after validation.
-- Generated code is stored under the local generated-artifact root, validated before execution, and run in a restricted ephemeral container as described in [Supervised agent compilation](#supervised-agent-compilation).
-- The app records audit and operational records, but it does not claim SOC 2, ISO 27001, HIPAA, GDPR, or other compliance certification.
+* Next.js web application
+* FastAPI agent runtime
+* Ingestion worker
+* Source-intelligence worker
+* Private Codex runner
+* Restricted generated-agent sandbox
+
+A recreation from GitHub needs its own Supabase project, AI credentials or a private Codex subscription login, and Docker-capable worker hosting. The submitted Supabase project, Codex login state, and server-side secrets are intentionally not committed. Therefore a fresh clone can reproduce the real product topology, but cannot connect to the submitted tenant without the separate test account and deployment URL above.
+
+A remote deployment must provide:
+
+* Supabase Auth, Postgres, and Storage
+* Applied database migrations
+* Server-side secrets
+* A configured AI backend
+* Docker sandbox execution
+* Required background workers
+
+No managed cloud, CI/CD, or vendor-specific deployment configuration is included; the checked-in Compose topology is the reproducible deployment contract.
+
+---
+
+## Hackathon
+
+Tacit was built for **OpenAI Build Week** under the **Work & Productivity** track.
+
+The project demonstrates how **Codex and GPT-5.6** can support the complete path from expert knowledge to:
+
+* Evidence-backed workflow extraction
+* Clarification and policy confirmation
+* Agent code generation
+* Automated test generation
+* Safe execution
+* Historical replay
+* Human approval and governance
+
+### Links
+
+* [Live application](https://tacit.thryveapps.in)
+* [Demo video](https://youtu.be/CCqIR12CTLY)
+* [Devpost submission](https://devpost.com/software/tacit-automating-uber-s-agentic-pods-with-codex-gpt-5-6)
+
+---
+
+## Responsible use
+
+Tacit is designed for supervised business-process automation.
+
+Users remain responsible for reviewing generated workflows, validating business rules, setting approval boundaries, securing credentials, and confirming that a generated agent is suitable for its intended environment.
+
+---
 
 ## License
 
-This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
+This project is licensed under the [MIT License](LICENSE).
