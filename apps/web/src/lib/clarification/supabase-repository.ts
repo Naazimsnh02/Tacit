@@ -3,6 +3,22 @@ import type { ClarificationRepository } from './service';
 
 interface Row { [key: string]: unknown }
 
+export function createRuleDiffPayloads(input: { previousWorkflowVersionId: string; workflowVersionId: string; before: WorkflowReconstruction['rules']; after: WorkflowReconstruction['rules'] }) {
+  const before = new Map(input.before.map((rule) => [rule.id, rule]));
+  return input.after
+    .filter((rule) => JSON.stringify(before.get(rule.id)) !== JSON.stringify(rule))
+    .map((rule) => ({
+      previous_workflow_version_id: input.previousWorkflowVersionId,
+      workflow_version_id: input.workflowVersionId,
+      rule_id: rule.id,
+      // A confirmation can introduce an evidence-backed rule for an unknown.
+      // The database audit record is non-nullable, so use an empty prior shape
+      // to represent an addition rather than failing after the answer is saved.
+      before_rule: before.get(rule.id) ?? {},
+      after_rule: rule,
+    }));
+}
+
 function config() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -41,8 +57,7 @@ export class SupabaseClarificationRepository implements ClarificationRepository 
   async saveRules(workflowVersionId: string, rules: WorkflowReconstruction['rules']) { await this.request('decision_rules', { method: 'POST', body: JSON.stringify(rules.map((rule) => ({ workflow_version_id: workflowVersionId, title: rule.name, condition: rule.condition, outcome: rule.action, boundary: rule.riskLevel === 'high' ? 'human_approval' : 'deterministic', status: rule.verificationStatus === 'confirmed' ? 'confirmed' : 'inferred', evidence_ids: rule.evidenceIds }))) }); }
   async answerQuestion(questionId: string, answer: ClarificationAnswerValue) { await this.request(`clarification_questions?id=eq.${encodeURIComponent(questionId)}`, { method: 'PATCH', body: JSON.stringify({ status: 'answered', answer: Array.isArray(answer) ? answer.join(', ') : String(answer), answer_value: answer, answered_at: new Date().toISOString() }) }); }
   async saveRuleDiffs(input: { previousWorkflowVersionId: string; workflowVersionId: string; before: WorkflowReconstruction['rules']; after: WorkflowReconstruction['rules'] }) {
-    const before = new Map(input.before.map((rule) => [rule.id, rule]));
-    const diffs = input.after.filter((rule) => JSON.stringify(before.get(rule.id)) !== JSON.stringify(rule)).map((rule) => ({ previous_workflow_version_id: input.previousWorkflowVersionId, workflow_version_id: input.workflowVersionId, rule_id: rule.id, before_rule: before.get(rule.id), after_rule: rule }));
+    const diffs = createRuleDiffPayloads(input);
     if (diffs.length) await this.request('workflow_rule_diffs', { method: 'POST', body: JSON.stringify(diffs) });
   }
   async markBuildsStale(workflowVersionId: string) { await this.request(`agent_builds?workflow_version_id=eq.${encodeURIComponent(workflowVersionId)}&status=in.(queued,running,succeeded)`, { method: 'PATCH', body: JSON.stringify({ status: 'stale' }) }); }

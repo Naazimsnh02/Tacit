@@ -42,6 +42,21 @@ describe('invoice exception workflow pack', () => {
     expect(fullyResolved.unknowns).toHaveLength(0);
   });
 
+  it('resolves the duplicate threshold conflict and unknown from one concrete answer', () => {
+    const reconstruction = createInvoiceReconstructionFallback({ evidenceIds: ['11111111-1111-4111-8111-111111111111'] });
+    const question: ClarificationQuestionDraft = {
+      id: 'unknown_1', question: 'Which manager approval threshold is authoritative.', rationale: 'This unknown prevents a deterministic automation boundary.',
+      relatedRuleId: null, evidenceIds: reconstruction.rules[0]!.evidenceIds, answerType: 'free_text', suggestedAnswers: [], riskIfUnanswered: 'The agent must escalate cases affected by this unknown.',
+    };
+
+    const resolved = resolveInvoiceClarificationAnswer({ reconstruction, question, answer: '500000' });
+    expect(resolved.contradictions).toHaveLength(0);
+    expect(resolved.unknowns).toHaveLength(0);
+    expect(resolved.rules.find((rule) => rule.id === 'manager_threshold')).toMatchObject({
+      condition: 'Invoice value exceeds 500000.', verificationStatus: 'confirmed', confidence: 1,
+    });
+  });
+
   it('preserves a confirmed manager threshold instead of replacing it with a boolean answer', () => {
     const reconstruction = createInvoiceReconstructionFallback({ evidenceIds: ['11111111-1111-4111-8111-111111111111'] });
     const question: ClarificationQuestionDraft = {

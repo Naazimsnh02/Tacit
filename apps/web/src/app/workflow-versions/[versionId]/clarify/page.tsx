@@ -66,6 +66,7 @@ export default function ClarificationPage({ params }: { readonly params: Promise
     
     window.location.assign(`/workflow-versions/${body.workflowVersionId}/clarify?projectId=${encodeURIComponent(projectId ?? '')}`);
   };
+  const hasOpenQuestions = questions.some((question) => question.status === 'open');
 
   return (
     <WorkspaceShell active="Clarify" mode="production" projectId={projectId ?? undefined} versionId={versionId ?? undefined}>
@@ -108,7 +109,7 @@ export default function ClarificationPage({ params }: { readonly params: Promise
       ) : (
         <>
           <ClarificationInterview questions={questions} onAnswer={handleAnswer} />
-          {questions.length === 0 && projectId ? (
+          {!hasOpenQuestions && projectId ? (
             <>
               <WorkflowConfirmation projectId={projectId} workflowVersionId={versionId} />
               <div style={{ marginTop: 16 }}>

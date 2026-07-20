@@ -68,7 +68,7 @@ export async function answerClarificationQuestion(input: { questionId: string; a
   const pack = input.registry.get(previous.workflowType);
   const updated = pack.resolveClarificationAnswer
     ? pack.resolveClarificationAnswer({ reconstruction, question: draft, answer })
-    : confirmRelatedRule(reconstruction, draft.relatedRuleId);
+    : resolveGenericClarificationAnswer({ reconstruction, question: draft, answer });
   const version = await input.repository.nextWorkflowVersion(previous.projectId);
   const workflowVersion = await input.repository.saveWorkflowVersion({ projectId: previous.projectId, version, specification: updated, promptVersion: 'clarification-answer-v1', modelRole: 'clarification' });
   await input.repository.saveRules(workflowVersion.id, updated.rules);
@@ -81,6 +81,69 @@ export async function answerClarificationQuestion(input: { questionId: string; a
 function confirmRelatedRule(reconstruction: WorkflowReconstruction, relatedRuleId: string | null): WorkflowReconstruction {
   if (!relatedRuleId) return reconstruction;
   return { ...reconstruction, rules: reconstruction.rules.map((rule) => rule.id === relatedRuleId ? { ...rule, verificationStatus: 'confirmed', confidence: 1 } : rule) };
+}
+
+/**
+ * Generic knowledge-transfer projects do not have a domain-pack interpreter
+ * for free-text answers. The answer remains in the immutable clarification
+ * record, while the corresponding unresolved item must be removed from the
+ * revised workflow so it is not generated again on the next clarification page.
+ */
+export function resolveGenericClarificationAnswer(input: {
+  readonly reconstruction: WorkflowReconstruction;
+  readonly question: ClarificationQuestionDraft;
+  readonly answer?: ClarificationAnswerValue;
+}): WorkflowReconstruction {
+  const resolvedRules = confirmRelatedRule(input.reconstruction, input.question.relatedRuleId).rules;
+  const rules = input.question.relatedRuleId || input.answer === undefined
+    ? resolvedRules
+    : [...resolvedRules, clarificationAnswerRule(input.question, input.answer)];
+  return {
+    ...input.reconstruction,
+    rules,
+    contradictions: input.reconstruction.contradictions.filter(
+      (contradiction) => input.question.question !== `How should the agent resolve this conflict: ${contradiction.description}?`,
+    ),
+    unknowns: input.reconstruction.unknowns.filter((unknown) => !isResolvedUnknown(input.question, unknown)),
+  };
+}
+
+function clarificationAnswerRule(question: ClarificationQuestionDraft, answer: ClarificationAnswerValue): WorkflowReconstruction['rules'][number] {
+  const resolvedAnswer = Array.isArray(answer) ? answer.join(', ') : String(answer);
+  return {
+    id: `clarification_${question.id}`,
+    name: 'Expert clarification',
+    condition: `The workflow reaches this decision: ${question.question}`,
+    action: resolvedAnswer,
+    exceptions: [],
+    confidence: 1,
+    evidenceIds: [...question.evidenceIds],
+    verificationStatus: 'confirmed',
+    riskLevel: question.riskIfUnanswered.toLowerCase().includes('unsafe') ? 'high' : 'medium',
+  };
+}
+
+/**
+ * Reconstruction currently stores contradictions and unknowns as independent
+ * strings. A conflict and an unknown can therefore describe the same decision
+ * boundary (for example, both ask about goodwill eligibility). Once the SME
+ * resolves the conflict, suppress only unknowns that share a specific topic;
+ * generic process words are deliberately ignored.
+ */
+function isResolvedUnknown(question: ClarificationQuestionDraft, unknown: string): boolean {
+  if (question.question === unknown) return true;
+  if (!question.question.startsWith('How should the agent resolve this conflict:')) return false;
+  const unknownTopics = new Set(topicTerms(unknown));
+  return topicTerms(question.question).some((term) => unknownTopics.has(term));
+}
+
+const nonTopicTerms = new Set([
+  'agent', 'approval', 'auto', 'case', 'criteria', 'decision', 'define', 'defined', 'eligibility', 'fully', 'how', 'limits',
+  'outcome', 'path', 'policy', 'process', 'question', 'resolve', 'should', 'specified', 'the', 'this', 'unknown', 'workflow',
+]);
+
+function topicTerms(value: string): string[] {
+  return [...new Set(value.toLowerCase().split(/[^a-z0-9]+/).filter((term) => term.length >= 5 && !nonTopicTerms.has(term)))];
 }
 
 function validateAnswer(question: ClarificationQuestion, value: unknown): ClarificationAnswerValue {

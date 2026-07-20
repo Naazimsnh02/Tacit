@@ -32,11 +32,23 @@
   <img alt="Supabase" src="https://img.shields.io/badge/Supabase-Postgres%20%2B%20Storage-3ECF8E?logo=supabase&logoColor=white">
 </p>
 
-> **Live demo:** [https://tacit.thryveapps.in](https://tacit.thryveapps.in)
+> **Live demo:** [https://tacit.thryveapps.in](https://tacit.thryveapps.in)  
+> **Demo video:** [https://youtu.be/CCqIR12CTLY](https://youtu.be/CCqIR12CTLY)  
+> **Devpost submission:** [https://devpost.com/software/tacit-automating-uber-s-agentic-pods-with-codex-gpt-5-6](https://devpost.com/software/tacit-automating-uber-s-agentic-pods-with-codex-gpt-5-6)
 
-## AI Development & Model Stack (Codex, GPT-5.6, Terra, & Luma)
+## Inspiration: Automating Uber's "Agentic Pods"
 
-Tacit was built for the [OpenAI Build Week](https://openai.devpost.com/) in the **Work & Productivity** track. The product demonstrates a complete path from expert knowledge transfer to a cited workflow, a constrained Codex-assisted build, historical replay, and human approval boundaries.
+Uber recently introduced **"Agentic Pods"**, selecting roughly 30 AI-proficient engineers and pairing each one with a domain expert from functions such as finance, legal, HR, operations, and marketing. Each pair received a two-week sprint to observe real workflows and build an AI agent alongside the employee performing it.
+
+While Uber proved that pairing engineers with domain experts yields high-impact agents, doing so manually requires immense engineering headcount and weeks of effort per workflow.
+
+**Tacit was built to automate the Agentic Pod itself.**
+
+Instead of spending weeks manually observing employees and writing custom code, Tacit enables domain experts to simply upload their evidence: SOPs, walkthrough videos, spreadsheets, and judgment calls. Tacit extracts cited workflows, flags policy contradictions, asks risk-ranked clarification questions, and compiles supervised, AST-checked Python AI agents automatically.
+
+## AI Development & Model Stack (Codex, GPT-5.6, Terra, & Luna)
+
+Tacit was built for the [OpenAI Build Week](https://devpost.com/software/tacit-automating-uber-s-agentic-pods-with-codex-gpt-5-6) in the **Work & Productivity** track. The product demonstrates a complete path from expert knowledge transfer to a cited workflow, a constrained Codex-assisted build, historical replay, and human approval boundaries.
 
 ### Full Development Support
 We used **Codex** and **GPT-5.6** to drive the **full development** of the entire codebase, including frontend/backend design, implementation, and overall development support. They assisted in drafting Next.js components, writing FastAPI code, defining Postgres schemas & RLS policies, designing the AST validation logic, constructing test suites, and configuring background ingestion workers.
@@ -66,7 +78,7 @@ The application itself integrates multiple specialized models across its core wo
 
 - **Codex & GPT-5.6 (Workflow Synthesis & Code Compilation)**: Used during the *Compilation* and *Clarification* phases to translate confirmed, human-approved workflow graphs into executable Python code (AST-checked scripts) and generate risk-ranked clarification questions.
 - **Terra (Semantic Logic & Contradiction Checks)**: Powers semantic analysis, cross-source contradiction checks, and structural insight extraction inside the **Understand** stage. It analyzes source relationships and identifies conflicting rules before drafting the workflow.
-- **Luma (Visual Context & Ingestion Processing)**: Integrates with the **Sources** ingestion worker to analyze video frame sequences, inspect visual walkthroughs, match screen states against steps, and perform OCR/image parsing on expert materials.
+- **Luna (Visual Context & Ingestion Processing)**: Integrates with the **Sources** ingestion worker to analyze video frame sequences, inspect visual walkthroughs, match screen states against steps, and perform OCR/image parsing on expert materials.
 
 ## The problem
 
@@ -165,6 +177,8 @@ These controls do not constitute a compliance certification and Tacit does not p
 
 ## Product walkthrough
 
+Watch the demo video: [https://youtu.be/CCqIR12CTLY](https://youtu.be/CCqIR12CTLY)
+
 The repository includes current application screenshots from the primary workspace journey.
 
 <p align="center">
@@ -224,7 +238,7 @@ The repository includes current application screenshots from the primary workspa
 | Application APIs | Next.js route handlers with Zod validation and build-progress streaming |
 | Runtime and workers | FastAPI, Python 3.11, Pydantic, and Docker |
 | Data, identity, and storage | Supabase Auth, Postgres, Row Level Security, and private Storage accessed through Supabase APIs |
-| AI | Codex & GPT-5.6 (compilation, clarification), Terra (semantic/contradiction checks), and Luma (vision/visual ingestion paths) |
+| AI | Codex & GPT-5.6 (compilation, clarification), Terra (semantic/contradiction checks), and Luna (vision/visual ingestion paths) |
 | Evidence processing | pypdf, python-docx, openpyxl, Tesseract OCR, FFmpeg, and optional OpenAI or Modal transcription |
 | Quality | Vitest, Playwright, pytest, Ruff, ESLint, and TypeScript project references |
 
@@ -443,15 +457,6 @@ The in-product **Test** stage is separate from this developer test suite: it eva
 This repository supports a local, Compose-based production-style topology. It requires Supabase, a configured AI backend, Docker, the agent sandbox image, and the worker services required for the chosen source types. Compose builds the Next.js image and starts web, runtime, workers, and the private Codex runner. The hackathon trust model disables malware scanning, so validated uploads process without ClamAV and are marked `scan_status=clean`.
 
 Before deploying to any remote environment, apply the ordered Supabase migrations to that environment, configure storage and auth, provide server-side secrets, build the sandbox image, and ensure the runtime can launch isolated containers. No Vercel, cloud-hosting, CI/CD, or managed worker deployment configuration is committed here.
-
-## Current implementation status and boundaries
-
-| Status | What it means in this repository |
-| --- | --- |
-| **Implemented production path** | Authenticated organizations and projects; tenant-scoped evidence intake; source extraction/intelligence; workflow drafting, clarification, confirmation, versions, and graph review; constrained builds; historical replay; approval decisions; readiness; operating observations; and impact snapshots. |
-| **Implemented with local infrastructure prerequisites** | OCR/media extraction, source-intelligence jobs, transcription, isolated generated-agent execution, and the private Codex runner require their configured local or deployed supporting services. |
-| **Demo only** | `/demo`, Invoice Exception Review seed fixtures, guided demo controls, sample-support fixtures, and `npm run demo:reset`. These are explicitly separated from production projects. |
-| **Not currently exposed as product capabilities** | Link/pasted-text intake, generic desktop capture, customer-facing connector management, arbitrary ERP/SaaS integrations, public hosted deployment, and autonomous high-risk actions. |
 
 ## Security and responsible use
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createClarificationQuestions, answerClarificationQuestion, type ClarificationRepository } from './service';
+import { createClarificationQuestions, answerClarificationQuestion, resolveGenericClarificationAnswer, type ClarificationRepository } from './service';
 import { createInvoiceReconstructionFallback } from '@tacit/workflow-invoice-exception';
 import { createWorkflowRegistry } from '../workflow-packs';
 import type { ClarificationAnswerValue, ClarificationQuestion, ClarificationQuestionDraft, WorkflowReconstruction } from '@tacit/core-schemas';
@@ -45,5 +45,34 @@ describe('clarification service', () => {
     expect(repository.saved?.rules.find((rule) => rule.id === 'quantity_tolerance')?.verificationStatus).toBe('confirmed');
     expect(repository.questions[0]?.status).toBe('answered');
     expect(repository.stale).toBe(true);
+  });
+
+  it('removes answered generic contradiction prompts and their overlapping unknowns from the revised workflow', () => {
+    const questions = createClarificationQuestions(reconstruction);
+    const conflictQuestion = questions.find((question) => question.id === 'resolve_approval_threshold_conflict');
+    const unknownQuestion = questions.find((question) => question.id === 'unknown_1');
+    expect(conflictQuestion).toBeDefined();
+    expect(unknownQuestion).toBeDefined();
+
+    const conflictResolved = resolveGenericClarificationAnswer({ reconstruction, question: conflictQuestion! });
+    expect(conflictResolved.contradictions).toHaveLength(0);
+    expect(conflictResolved.unknowns).toHaveLength(0);
+    expect(conflictResolved.rules.find((rule) => rule.id === conflictQuestion!.relatedRuleId)?.verificationStatus).toBe('confirmed');
+
+    const unknownResolved = resolveGenericClarificationAnswer({ reconstruction, question: unknownQuestion! });
+    expect(unknownResolved.unknowns).toHaveLength(0);
+    expect(unknownResolved.contradictions).toEqual(reconstruction.contradictions);
+  });
+
+  it('preserves a free-text generic answer as a confirmed evidence-backed rule', () => {
+    const questions = createClarificationQuestions(reconstruction);
+    const unknownQuestion = questions.find((question) => question.id === 'unknown_1');
+    const resolved = resolveGenericClarificationAnswer({ reconstruction, question: unknownQuestion!, answer: 'The observed threshold is authoritative.' });
+    expect(resolved.rules).toContainEqual(expect.objectContaining({
+      id: 'clarification_unknown_1',
+      action: 'The observed threshold is authoritative.',
+      verificationStatus: 'confirmed',
+      confidence: 1,
+    }));
   });
 });

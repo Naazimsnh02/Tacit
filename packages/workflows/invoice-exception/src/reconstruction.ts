@@ -33,8 +33,9 @@ export function resolveInvoiceClarificationAnswer(input: {
   readonly reconstruction: WorkflowReconstruction; readonly question: ClarificationQuestionDraft; readonly answer: ClarificationAnswerValue;
 }): WorkflowReconstruction {
   const answer = Array.isArray(input.answer) ? input.answer.join(', ') : String(input.answer);
+  const resolvesManagerThreshold = isConcreteManagerThresholdAnswer(input.question, input.answer);
   const rules = input.reconstruction.rules.map((rule) => {
-    if (rule.id !== input.question.relatedRuleId) return rule;
+    if (rule.id !== input.question.relatedRuleId && !(resolvesManagerThreshold && rule.id === 'manager_threshold')) return rule;
     if (rule.id === 'manager_threshold') {
       return {
         ...rule,
@@ -50,13 +51,30 @@ export function resolveInvoiceClarificationAnswer(input: {
       confidence: 1,
     };
   });
-  const resolvedContradictions = input.reconstruction.contradictions.filter(
-    (contradiction) => input.question.question !== `How should the agent resolve this conflict: ${contradiction.description}?`,
-  );
-  const resolvedUnknowns = input.reconstruction.unknowns.filter(
-    (unknown) => input.question.question !== unknown,
-  );
+  const resolvedContradictions = input.reconstruction.contradictions.filter((contradiction) => {
+    if (resolvesManagerThreshold && isManagerThresholdConflict(contradiction.description)) return false;
+    return input.question.question !== `How should the agent resolve this conflict: ${contradiction.description}?`;
+  });
+  const resolvedUnknowns = input.reconstruction.unknowns.filter((unknown) => {
+    if (resolvesManagerThreshold && isManagerThresholdUnknown(unknown)) return false;
+    return input.question.question !== unknown;
+  });
   return { ...input.reconstruction, rules, contradictions: resolvedContradictions, unknowns: resolvedUnknowns };
+}
+
+function isConcreteManagerThresholdAnswer(question: ClarificationQuestionDraft, answer: ClarificationAnswerValue): boolean {
+  if (typeof answer !== 'string' && typeof answer !== 'number') return false;
+  if (question.relatedRuleId !== 'manager_threshold' && !isManagerThresholdUnknown(question.question)) return false;
+  const value = String(answer).trim();
+  return /\d/.test(value) || /\bsop\b|documented policy|\bobserved\b|\bcurrent\b|manager threshold/i.test(value);
+}
+
+function isManagerThresholdConflict(description: string): boolean {
+  return /manager threshold|approval threshold/i.test(description);
+}
+
+function isManagerThresholdUnknown(unknown: string): boolean {
+  return /which manager approval threshold is authoritative/i.test(unknown);
 }
 
 function resolveManagerThresholdCondition(existingCondition: string, answer: string): string {
